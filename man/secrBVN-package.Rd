@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 \name{secrBVN-package}
 \alias{secrBVN-package}
 \alias{secrBVN}
@@ -19,7 +18,7 @@
 Package: \tab secrBVN\cr
 Type: \tab Package\cr
 Version: \tab 1.2.2\cr
-Date: \tab 2018-07-26\cr
+Date: \tab 2018-08-03\cr
 License: \tab GNU General Public License Version 2 or later\cr
 }
 
@@ -28,6 +27,7 @@ License: \tab GNU General Public License Version 2 or later\cr
 \code{\link{simcapt.bvn}} \tab \cr
 \code{\link{simpopn.bvn}} \tab \cr
 \code{\link{runEllipseSim}} \tab \cr
+\code{\link{sumplot}} \tab \cr
 }
 
 }
