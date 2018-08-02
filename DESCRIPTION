@@ -1,0 +1,14 @@
+Package: secrBVN
+Type: Package
+Title: Bivariate Normal Home Range SECR
+Version: 1.2.2
+Depends: R (>= 3.2.0), secr
+Imports: mvtnorm, parallel, geoR, sp, rgeos
+Suggests: MASS, knitr
+VignetteBuilder: knitr
+Date: 2018-08-03
+Author: Murray Efford
+Maintainer: Murray Efford <murray.efford@gmail.com>
+Description: Functions to simulate and plot random bivariate normal home ranges, extending relevant capability in secr. 
+License: GPL (>=2) 
+BugReports: https://github.com/MurrayEfford/secrBVN/issues

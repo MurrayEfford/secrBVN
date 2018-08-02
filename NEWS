@@ -1,0 +1,21 @@
+Changes in version 1.2.2 (2018-08-02)
+
+New features or changed behaviour of old functions
+    o   runEllipseSim() returns both extractfn(fit) and predict(fit) for each replicate
+    o   clarified arguments of runEllipseSim() and simcapt.bvn() wrt hazard and detectfn
+    o   plotpopn.bvn() new argument region for truncation of plotted ellipses
+    
+Other    
+    o   GitHub repo murrayefford/secrBVN
+
+Changes in version 1.2.1 (2018-07-11)
+
+New features or changed behaviour of old functions
+    o   simpopn.bvn() argument s2xy may be a function, allowing individual heterogeneity
+    o   runEllipseSim() argument sigmaX may be a function as for simpopn.bvn()
+    o   rebuilt for R 3.5.0
+    
+Changes in version 1.2.0 (2016-09-30)
+
+New features or changed behaviour of old functions
+    o   simcapt.bvn() allows multi-catch detectors
