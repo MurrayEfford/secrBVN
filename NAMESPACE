@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import (secr)
 importFrom ("graphics", "par", "plot", "points", "polygon")
 importFrom ("stats", "runif", "predict")
@@ -17,27 +16,4 @@ export (simpopn.bvn)
 export (simcapt.bvn)
 export (plotpopn.bvn)
 export (runEllipseSim)
-
-
-=======
-import (secr)
-importFrom ("graphics", "par", "plot", "points", "polygon")
-importFrom ("stats", "runif", "predict")
-importFrom ("utils", "flush.console")
-importFrom ("mvtnorm", "dmvnorm")
-importFrom ("parallel", "parLapply")
-importFrom ("parallel", "makeCluster")
-importFrom ("parallel", "clusterSetRNGStream")
-importFrom ("parallel", "stopCluster")
-importFrom ("utils", "packageDescription")
-importFrom ("utils", "packageVersion")
-importFrom ("sp", "Polygon", "Polygons", "SpatialPolygons")
-importFrom ("geoR", "coords.aniso")
-importFrom ("rgeos", "gIntersection")
-export (simpopn.bvn)
-export (simcapt.bvn)
-export (plotpopn.bvn)
-export (runEllipseSim)
-
-
->>>>>>> 67bfb5b162dab3c4406b76b4faf48eabee35533f
+export (sumplot)
