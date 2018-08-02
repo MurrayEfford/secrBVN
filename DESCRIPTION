@@ -1,7 +1,7 @@
 Package: secrBVN
 Type: Package
 Title: Bivariate Normal Home Range SECR
-Version: 1.2.2
+Version: 1.2.3
 Depends: R (>= 3.2.0), secr
 Imports: mvtnorm, parallel, geoR, sp, rgeos
 Suggests: MASS, knitr
