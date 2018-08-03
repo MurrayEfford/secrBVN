@@ -63,5 +63,5 @@ sumplot <- function (simlist, trueD = 4, plt = TRUE,
         }
         out <- lapply(outlist, comp)
     }
-    invisible(out)
+    if (plt) invisible(out) else out
 }

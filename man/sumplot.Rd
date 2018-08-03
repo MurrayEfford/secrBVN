@@ -42,7 +42,7 @@ Each component of \code{simlist} should have the same number of components (elli
 
 \value{
 
-Invisibly returns list of output matrices (tables)
+List of output matrices (tables), returned invisibly if \code{plt = TRUE}.
 
 }
 
