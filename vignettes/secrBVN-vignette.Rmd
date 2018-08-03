@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ---
 title: '**secrBVN** - simulation of spatially explicit capture-recapture with bivariate normal home ranges'
 author: "Murray Efford"
@@ -14,21 +13,25 @@ vignette: >
 
 \vspace{16pt}
 
-This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses.
+This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses. Code to use **secrBVN** for the simulations of Efford (in prep.) is provided in the [Appendix](#Appendix).
 
-The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn` and `runEllipseSim`.
+The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`, `runEllipseSim` and `sumplot`.
+
+
 
 \vspace{12pt}
 
 
 #Generating and plotting elliptical home ranges
 
-`simpopn.bvn` is a wrapper for the **secr** function `sim.popn` that adds attributes specifying a bivariate normal home range shape, size and orientation for each individual. At first shape and size are the same for all individuals, but the resulting popn object may be modified so they vary individually.
+`simpopn.bvn` is a wrapper for the **secr** function `sim.popn` that adds attributes specifying a bivariate normal home range shape, size and orientation for each individual. By default, shape and size are the same for all individuals, but the resulting popn object may be modified so they vary individually (see [Heterogeneous elliptical home ranges](#heterogeneity)).
 
 First, load the package.
 ```{r startup}
 library(secrBVN)
 vignettefolder <- "c:/density secr 3.1/secrBVN/vignettes/"
+runall <- FALSE  # skip lengthy simulations
+ncores <- 20     # for simulations
 ```
 
 ```{r ellipses, fig.width=8, fig.height=3}
@@ -52,17 +55,17 @@ Fig. 1. Elliptical home ranges with varying ratio of major to minor axes as show
 
 ## Generating detection histories
 
-Normally in **secr** we use `sim.capthist` to generate capture histories, but that is limited to circular detection functions. The function `simcapt.bvn` is a partial replacement for `sim.capthist` that models detection with a bivariate normal. Specifically, the probability of detection is a constant times the bivariate normal probability density at the detector. The constant is $g_0 2 \pi \sigma_X \sigma_Y$. The user provides a 'popn' object that includes the BVN parameter values ($\sigma_x^2, \sigma_y^2, \theta$) for each animal (row), as generated above by `simpopn.bvn`. The constant scales the BVN density so that the maximum detection probability is $g_0$.
+Normally in **secr** we use `sim.capthist` to generate capture histories, but that is limited to circular detection functions. The function `simcapt.bvn` is a partial replacement for `sim.capthist` that models detection with a bivariate normal. Specifically, the cumulative hazard of detection is a constant times the bivariate normal probability density at the detector. The constant is $\lambda_0 2 \pi \sigma_X \sigma_Y$. The user provides a 'popn' object that includes the BVN parameter values ($\sigma_x^2, \sigma_y^2, \theta$) for each animal (row), as generated above by `simpopn.bvn`. The constant scales the BVN density so that the maximum hazard is $\lambda_0$.
 
-If `detectfn = 4` is selected then a uniform (flat-topped) elliptical home range is simulated.
+The preceding paragraph describes the default behaviour of `simcapt.bvn`. If `type = uniform` is selected then a uniform (flat-topped) elliptical home range is simulated. The uniform probability of detection within the ellipse is controlled by `g0`.
 
 ## Fitting a circular detection model to BVN data
 
 The function `runEllipseSim` is a wrapper for the preceding steps (`simpopn.bvn`, `simcapt.bvn`) that also fits a standard (circular) SECR model with `secr.fit`. The default population has fixed number of individuals within the rectangular buffered area around the detectors (`Ndist = 'fixed'`).
 
-Here we use a $6 \times 6$ grid of binary proximity detectors with 50 metre spacing. The code in **secrBVN** does not allow for competition among detectors (secr detector type 'multi') or other other secr detector types. A density of 4/ha gives exactly 169 animals in the buffered area. The intercept parameter g0 is varied to reduce the effect of `detectfn` on total number of captures and precision. Conditional likelihood is used for speed; the default `extractfn = derived` is compatible with both `CL = TRUE` and `CL = FALSE`. The 200-m buffer allows for the longest ranges ($\sigma_y = 50$ m).
+Here we use a $6 \times 6$ grid of binary proximity detectors with 50 metre spacing. The code in **secrBVN** does not allow for competition among detectors (secr detector type 'multi') or other other secr detector types. A density of 4/ha gives exactly 169 animals in the buffered area. The intercept parameter `g0` or `lambda0` is varied to reduce the effect of `type` on total number of captures and precision. Conditional likelihood is used for speed; the default `extractfn = derived` is compatible with both `CL = TRUE` and `CL = FALSE`. The 200-m buffer allows for the longest ranges ($\sigma_y = 50$ m).
 
-```{r runEllipseSim, eval = FALSE}
+```{r runEllipseSim, eval = runall}
 nrepl <- 500
 tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
 simrandom <- vector('list')
@@ -70,69 +73,26 @@ simrandomBVN <- vector('list')
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
     details <- list(distribution = 'binomial')
-    ## uniform
-    simrandom[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                               details = details) 
-    ## bvn
-    simrandomBVN[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details) 
+    # uniform
+    simrandom[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
+        CL = TRUE, details = details) 
+    # bvn
+    simrandomBVN[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        CL = TRUE, details = details) 
 }
-save(simrandom, file = paste(vignettefolder, 'simrandom.RData', sep=''))
-save(simrandomBVN, file = paste(vignettefolder, 'simrandomBVN.RData', sep=''))
+save(simrandom, file = paste0(vignettefolder, 'simrandom36.2.RData'))
+save(simrandomBVN, file = paste0(vignettefolder, 'simrandomBVN36.2.RData'))
 ```
 
-Construct a function to summarize the results:
-```{r sumplot, eval = TRUE}
-sumplot <- function (sims1, sims2, trueD = 4, xval = 1:4, ylim = c(-0.2,0.2), 
-                     legtext = c('setone' ,'settwo'), plt = TRUE) {
-    sumD <- function(x) {
-        Dval <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'estimate')
-        DSE  <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'SE.estimate')
-        Dlcl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'lcl')
-        Ducl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'ucl')
-        n <- sum(!is.na(Dval))
-        RB <- (Dval-trueD)/trueD
-        RSE <- DSE/Dval
-        COV <- (trueD>=Dlcl) & (trueD<=Ducl)
-        npop <- sapply(x, '[[', 'npop')
-        nCH <- sapply(x, '[[', 'nCH')
-        c(av.npop = mean(npop), av.nCH = mean(nCH), av.Dhat = mean(Dval), 
-          md.Dhat = median(Dval), sd.Dhat = sd(Dval),
-          RB = mean(RB), seRB = sd(Dval)/trueD/n^0.5, 
-          RSE = mean(RSE), seRSE = sd(RSE)/n^0.5, 
-          COV = mean(COV))
-    }    
-    out1 <- sapply(sims1, sumD)
-    out2 <- sapply(sims2, sumD)
-    if (plt) {
-        plot(xval, out1['RB',], ylim = ylim, xlab = 'Aspect ratio', 
-             ylab = 'Relative bias', pch=16, axes = FALSE)
-        axis(1, at=1:4)
-        axis(2)
-        segments(xval, out1['RB',]-2*out1['seRB',], 
-                 xval, out1['RB',]+2*out1['seRB',])
-        segments(xval+0.05, out2['RB',]-2*out2['seRB',], 
-                 xval+0.05, out2['RB',]+2*out2['seRB',])
-        points(xval+0.05, out2['RB',], pch = 21, bg = 'white')
-        abline(h=0, lty=2)
-        legend (par()$usr[2]*0.6, par()$usr[4]*0.95, legend = legtext, 
-                pch = c(16,21), cex = 0.8)
-    }
-    output <- list(out1,out2)
-    names(output) <- legtext
-    lapply(output,round,4)
-}
+The package function `sumplot` is used to summarize the results
 
-```
-
-...and run it:
 ```{r runsumplot, fig.width = 4, fig.height = 4}
-load(file = paste(vignettefolder, 'simrandom.RData', sep=''))
-load(file = paste(vignettefolder, 'simrandomBVN.RData', sep=''))
+load(file = paste0(vignettefolder, 'simrandom36.2.RData'))
+load(file = paste0(vignettefolder, 'simrandomBVN36.2.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-output <- sumplot(simrandom, simrandomBVN, legtext = c('Uniform','BVN'))
+output <- sumplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]))
 ```
 
 Fig. 2. Relative bias of density estimated by fitting circular SECR detection model to elliptical data, with 95\% confidence limit for simulated values. 'Uniform' home ranges were truncated at the 95\% activity contour of an equivalent bivariate normal, and detection probability was uniform inside the boundary. 'BVN' home ranges extended indefinitely in all directions.
@@ -143,18 +103,111 @@ output
 
 There is no apparent effect of range elongation itself on the bias of the estimates. Fitting a halfnormal detection function (detectfn = 0) to data from 'hard-edged' (uniform) home ranges (detectfn = 4) appears to result in negative bias on the order of --1% to --2% (Efford 2004 noted a relative bias of --1.2%, SE 0.8% for a small sample of 100 simulations fitting a model by inverse prediction in the circular case).
 
-#Limitations
+##Check circular using alternate method (sim.capthist)
+
+```{r checkcircular, eval = runall}
+nrepl <- 500
+tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
+simcirc <- vector('list')
+simcircBVN <- vector('list')
+    sigmaX <- 25
+    details <- list(distribution = 'binomial')
+    # uniform
+    simcirc[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 2, 
+                               traps = tr, g0 = 0.2, D = 4, type = 'uniform', CL = TRUE, 
+                               details = details) 
+    # bvn
+    simcircBVN[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 2, 
+                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', CL = TRUE, 
+                               details = details) 
+save(simcirc, file = 'simcirc.RData')
+save(simcircBVN, file = 'simcircBVN.RData')
+```
+```{r, results="hold"}
+load(file = paste0(vignettefolder, 'simcirc.RData'))
+load(file = paste0(vignettefolder, 'simcircBVN.RData'))
+par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
+sumplot(list(Uniform = simcirc, BVN = simcircBVN), plt = FALSE)
+
+```
+
+##Heterogeneous elliptical home ranges  {#heterogeneity}
+
+`simpopn.bvn` usually generates a population with equal-sized home ranges. The size and elongation of each range may be varied by providing a function as the argument `s2xy`:
+```{r heteroellipses, fig.width = 4, fig.height = 4}
+tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
+rs2xy <- function(N, scale = 25) {   
+    aspectratio <- 1 + runif(N) * 3
+    cbind(scale^2 / aspectratio, scale^2 * aspectratio)
+}
+pop <- simpopn.bvn(s2xy = rs2xy, core = tr, buffer = 100, D = 1)
+par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = TRUE)
+plotpopn.bvn(pop, col = 'grey')
+```
+
+Heterogeneous populations may also be simulated in `runEllipseSim` by passing a function as the argument 'sigmaX'.
+
+```{r runhetero, eval = runall}
+sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2, 
+                       traps = tr, g0 = 0.2, D = 4, type = 'uniform', CL = TRUE, 
+                       SECR = TRUE) 
+```
+
+#Anisotropic home ranges as a solution
+
+In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space. Thanks to Ben Augustine for pointing the 'geoR' function `coords.aniso` that lets us do this. Whether this is a practical solution remains to be seen: if the parameters of the transformation are unknown and must be estimated (below) then intensive sampling may be needed to get good results.
+
+This is the only time in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
+
+```{r anisotropic, eval = runall}
+anisodistfn <- function (xy1,xy2, mask) {
+    if (missing(xy1)) return(character(0))
+    xy1 <- as.matrix(xy1)
+    xy2 <- as.matrix(xy2)
+    miscparm <- attr(mask, 'miscparm')
+    psiA <- miscparm[1]           # anisotropy angle; identity link
+    psiR <- 1 + exp(miscparm[2])  # anisotropy ratio; log link
+    aniso.xy1 <- geoR::coords.aniso(xy1, aniso.pars = c(psiA, psiR), reverse = FALSE)
+    aniso.xy2 <- geoR::coords.aniso(xy2, aniso.pars = c(psiA, psiR), reverse = FALSE)
+    distmat <- edist(aniso.xy1,aniso.xy2)
+    distmat # nrow(xy1) x nrow(xy2) matrix
+}
+nrepl <- 10
+library(geoR)
+tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
+simaniso1 <- vector('list')
+simaniso2 <- vector('list')
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    # parameters psiA and psiR are passed to anisodistfn
+    details <- list(distribution = 'binomial', userdist = anisodistfn, 
+             miscparm = c(psiA = 0.5, psiR = 1.5))
+    # bvn parallel to traps
+    simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
+                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+                               extractfn = predict, details = details, theta = 0) 
+    # bvn perpendicular to traps
+    simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
+                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+                               extractfn = predict, details = details, theta = pi/2) 
+}
+save(simaniso1, file = paste0(vignettefolder, 'simaniso1.RData'))
+save(simaniso2, file = paste0(vignettefolder, 'simaniso2.RData'))
+```
+
+# Package limitations
 
 This package has the limited goal of determining how range elongation affects estimates of density in simple SECR models, and these specific limitations:
 
 1. Only binary proximity detectors are supported.
 2. The spatial distribution of activity centres is assumed to be homogeneous Poisson.
-3. 'g0' is used here loosely - probably it should be lambda0 ($\lambda_0$).
-4. Ellipses are specified using either 'sigmaX' and 'sigmaY' as separate arguments (`runEllipseSim`) or as a vector of the two values, squared ('s2xy'). This is confusing but it's better at this point not to change.
+3. Ellipses are specified using either 'sigmaX' and 'sigmaY' as separate arguments (`runEllipseSim`) or as a vector of the two values, squared ('s2xy' in `simpopn.bvn`). This is confusing but it's better at this point not to change.
 
 #References
 
 Efford, M. G. (2004) Density estimation in live-trapping studies. *Oikos* **106**, 598--610.
+
+Efford, M. G. In prep. Non-circular home ranges and the estimation of population density.
 
 Huggins, R. M. (1989) On the statistical analysis of capture experiments. 
 *Biometrika* **76**, 133--140.
@@ -162,37 +215,326 @@ Huggins, R. M. (1989) On the statistical analysis of capture experiments.
 Ivan, J. S., White, G. C. and Shenk, T. M. (2013) Using simulation to compare methods for 
 estimating density from capture--recapture data. *Ecology* **94**, 817--826.
 
-#Appendix. Supplementary simulations
+#Appendix. Code for simulations of Efford (in prep)  {#Appendix}
 
-##Randomly aligned ellipses
-
-```{r randomalignment, eval = FALSE}
+```{r simfolder}
+simfolder <- "c:/density communication/noncircularity/paper/simulations/"
 nrepl <- 500
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-simalign <- vector('list')
-simalignBVN <- vector('list')
+ncores <- 20
+runsim <- FALSE
+details <- list(distribution = 'binomial') # all simulations fixed-N
+```
+
+Functions for heterogeneous aspect ratio.
+```{r heterofn}
+# Uniform on 1-4
+rs2xy <- function(N, scale = 25) {   
+    i <- 1 + runif(N) * 3
+    cbind(scale^2 /i, scale^2 * i)
+}
+# 2 classes 1,4
+rs2xy2 <- function(N, scale = 25, prob = c(0.5,0.5)) { 
+    i <- sample(c(1,4), size = N, replace = TRUE, prob = prob)
+    cbind(scale^2 /i, scale^2 * i)
+}
+```
+
+## Main simulations 10 x 10 grid
+
+```{r sim1, eval = runsim}
+tr <- make.grid(10,10, spacing = 50, detector = 'proximity')
+simrandom100.2 <- vector('list')
+names(simrandom100.2) <- c(1:4,'1-4','1,4')
+simrandomBVN100.2 <- simrandom100.2
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    simrandom100.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores,traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    simrandomBVN100.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    message ('Completed aspect ratio', i)
+}
+# heterogeneous aspect ratio 1,4, uniform
+simrandom100.2[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', seed = 347, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# heterogeneous aspect ratio 1,4, BVN
+simrandomBVN100.2[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', seed = 347, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+# heterogeneous aspect ratio 1,4, uniform
+simrandom100.2[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
+    CL = TRUE, detectfn = 'HHN', details = details)
+#heterogeneous aspect ratio 1,4, BVN
+simrandomBVN100.2[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+save(simrandom100.2, file = paste0(simfolder, 'simrandom100.2.RData'))
+save(simrandomBVN100.2, file = paste0(simfolder, 'simrandomBVN100.2.RData'))
+```
+
+```{r sumplot1}
+load(file = paste0(simfolder, 'simrandom100.2.RData'))
+load(file = paste0(simfolder, 'simrandomBVN100.2.RData'))
+par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
+# select only first 4 scenarios for plotting
+sumplot(list(Uniform = simrandom100.2[1:4], BVN = simrandomBVN100.2[1:4]), legend = TRUE)
+# tabulate all
+sumplot(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), compact = NULL, 
+    plt = FALSE, ndec = 4)
+```
+
+
+```{r sumplot1a}
+# compact table for paper
+sumplot(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), plt = FALSE)
+# spatial scale parameter
+output <- sumplot(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), plt = FALSE,
+        compact= c('av.sighat', 'se.sighat'))
+lapply(output, '/', 50)  # in units of detector spacing
+```
+
+## Main simulations 36-detector linear array 
+
+```{r sim2, eval = runsim}
+tr <- make.grid(36, 1, spacex = 25, spacey = 25, detector = 'proximity')
+simgridalignlin1.3 <- vector('list', 6)
+names(simgridalignlin1.3) <- c(1:4,'1-4','1,4')
+simgridalignlin4.3 <- simgridalignlin3.3 <- simgridalignlin2.3 <- simgridalignlin1.3 
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    # bvn parallel to traps
+    simgridalignlin1.3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn oblique to traps
+    simgridalignlin2.3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/4, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn perpendicular to traps
+    simgridalignlin3.3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/2, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn random orientation
+    simgridalignlin4.3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+}
+
+# bvn parallel to traps
+simgridalignlin1.3[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn oblique to traps
+simgridalignlin2.3[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/4, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn perpendicular to traps
+simgridalignlin3.3[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/2, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn random orientation
+simgridalignlin4.3[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+simgridalignlin1.3[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn oblique to traps
+simgridalignlin2.3[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/4, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn perpendicular to traps
+simgridalignlin3.3[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/2, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn random orientation
+simgridalignlin4.3[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+save(simgridalignlin1.3, file = paste0(simfolder, 'simgridalignlin1.3.RData'))
+save(simgridalignlin2.3, file = paste0(simfolder, 'simgridalignlin2.3.RData'))
+save(simgridalignlin3.3, file = paste0(simfolder, 'simgridalignlin3.3.RData'))
+save(simgridalignlin4.3, file = paste0(simfolder, 'simgridalignlin4.3.RData'))
+```
+
+```{r sumplot2}
+load(file = paste0(simfolder, 'simgridalignlin1.3.RData'))
+load(file = paste0(simfolder, 'simgridalignlin2.3.RData'))
+load(file = paste0(simfolder, 'simgridalignlin3.3.RData'))
+load(file = paste0(simfolder, 'simgridalignlin4.3.RData'))
+
+sumplot(list(Parallel = simgridalignlin1.3[1:4],
+             Oblique = simgridalignlin2.3[1:4],
+             Perpendicular = simgridalignlin3.3[1:4], 
+             Random = simgridalignlin4.3[1:4]), 
+        legend = TRUE, ylim = c(-1,3.5))
+        
+sumplot(list(Parallel      = simgridalignlin1.3, 
+             Oblique       = simgridalignlin2.3, 
+             Perpendicular = simgridalignlin3.3, 
+             Random        = simgridalignlin4.3), 
+        plt = FALSE)
+```
+
+## Low density 10 x 10 grid
+
+```{r simlow, eval = runsim}
+tr <- make.grid(10, 10, spacing = 50, detector = 'proximity')
+simrandom100low.2 <- vector('list', 4)
+simrandomBVN100low.2 <- vector('list', 4)
+names(simrandom100low.2) <- 1:4
+names(simrandomBVN100low.2) <- 1:4
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    simrandom100low.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, g0 = 0.2, D = 0.5, type = 'uniform', 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    simrandomBVN100low.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 0.5, type = 'BVN', 
+        CL = TRUE, detectfn = 'HHN', details = details)
+}
+save(simrandom100low.2, file = paste0(simfolder, 'simrandom100low.2.RData'))
+save(simrandomBVN100low.2, file = paste0(simfolder, 'simrandomBVN100low.2.RData'))
+```
+
+```{r sumplotlow}
+load(file = paste0(simfolder, 'simrandom100low.2.RData'))
+load(file = paste0(simfolder, 'simrandomBVN100low.2.RData'))
+par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
+sumplot(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
+    trueD = 0.5, legend = TRUE)
+sumplot(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
+    trueD = 0.5, plt = FALSE, compact = NULL)
+```
+
+## Small array 6 x 6 grid
+
+```{r simsmall, eval = runsim}
+tr <- make.grid(6, 6, spacing = 50, detector = 'proximity')
+simrandom36.2 <- vector('list', 6)
+simrandomBVN36.2 <- vector('list', 6)
+names(simrandom36.2) <- c(1:4, '1-4','1,4')
+names(simrandomBVN36.2) <- c(1:4, '1-4','1,4')
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    simrandom36.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    simrandomBVN36.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    message ('Completed aspect ratio', i)
+}
+# heterogeneous 1-4
+simrandom36.2[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', seed = 347, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+simrandomBVN36.2[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', seed = 347, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+# heterogeneous 1,4
+simrandom36.2[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
+    CL = TRUE, detectfn = 'HHN', details = details)
+simrandomBVN36.2[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+    CL = TRUE, detectfn = 'HHN', details = details)
+save(simrandom36.2, file = paste0(simfolder, 'simrandom36.2.RData'))
+save(simrandomBVN36.2, file = paste0(simfolder, 'simrandomBVN36.2.RData'))
+```
+
+```{r sumplotsmall}
+load(file = paste0(simfolder, 'simrandom36.2.RData'))
+load(file = paste0(simfolder, 'simrandomBVN36.2.RData'))
+sumplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]), legend = TRUE)
+sumplot(list(Uniform = simrandom36.2, BVN = simrandomBVN36.2), plt = FALSE)
+```
+
+## Common random orientation
+
+```{r simcommon, eval = runsim}
+tr <- make.grid(10, 10, spacing = 50, detector = 'proximity')
+simrandom100C.2 <- vector('list', 4)
+names(simrandom100C.2) <- 1:4
+simrandomBVN100C.2 <- simrandom100C.2
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    simrandom100C.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', theta = -1,
+        CL = TRUE, detectfn = 'HHN', details = details)
+    simrandomBVN100C.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = -1,
+        CL = TRUE, detectfn = 'HHN', details = details)
+}
+save(simrandom100C.2, file = paste0(simfolder, 'simrandom100C.2.RData'))
+save(simrandomBVN100C.2, file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
+```
+
+```{r sumplotcommon}
+load(file = paste0(simfolder, 'simrandom100C.2.RData'))
+load(file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
+sumplot(list(Uniform = simrandom100C.2, BVN = simrandomBVN100C.2), legend = TRUE)
+```
+
+## Hollow grid (linear, two directions)
+
+```{r simhollow, eval = runsim}
+tr <- make.grid(10, 10, spacex = 25, spacey = 25, detector = 'proximity', hollow = TRUE)
+simgridalignsq1.2 <- vector('list', 6)
+names(simgridalignsq1.2) <- c(1:4, '1-4','1,4')
+simgridalignsq3.2 <- simgridalignsq2.2 <- simgridalignsq1.2
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
     details <- list(distribution = 'binomial')
-    ## uniform
-    simalign[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                               details = details, theta = -1) 
-    ## bvn
-    simalignBVN[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details, theta = -1) 
+    # bvn parallel to traps
+    simgridalignsq1.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn random orientation
+    simgridalignsq2.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+        CL = TRUE, detectfn = 'HHN', details = details)
 }
-save(simalign, file = paste(vignettefolder, 'simalign.RData', sep=''))
-save(simalignBVN, file = paste(vignettefolder, 'simalignBVN.RData', sep=''))
+# heterogeneous aspect ratio 1-4
+# bvn parallel to traps
+simgridalignsq1.2[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn random orientation
+simgridalignsq2.2[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+# heterogeneous aspect ratio 1,4
+# bvn parallel to traps
+simgridalignsq1.2[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn random orientation
+simgridalignsq2.2[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+save(simgridalignsq1.2, file = paste0(simfolder, 'simgridalignsq1.2.RData'))
+save(simgridalignsq2.2, file = paste0(simfolder, 'simgridalignsq2.2.RData'))
 ```
-These results are not much different to those with random alignment, although the coverage is perhaps slightly worse.
-```{r plotrandomalignment, fig.width = 4, fig.height = 4}
-load(file = paste(vignettefolder, 'simalign.RData', sep=''))
-load(file = paste(vignettefolder, 'simalignBVN.RData', sep=''))
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-sumplot(simalign, simalignBVN, legtext = c('AlignedUniform','AlignedBVN'))
+
+```{r sumplothollow}
+load(file = paste0(simfolder, 'simgridalignsq1.2.RData'))
+load(file = paste0(simfolder, 'simgridalignsq2.2.RData'))
+sumplot(list(Parallel = simgridalignsq1.2, Random = simgridalignsq2.2), plt = F)
 ```
+
+# Old appendix 2018-08-04
 
 ##Grid-aligned ellipses
 
@@ -216,489 +558,33 @@ for (i in 1:4) {
 }
 ```
 
-```{r gridalignment, eval = FALSE}
+```{r gridalignment, eval = runall}
 nrepl <- 500
 tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
-simgridalign1 <- vector('list')
-simgridalign2 <- vector('list')
+simgridalign1 <- vector('list', 4); names(simgridalign1) <- 1:4
+simgridalign2 <- simgridalign1
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    details <- list(distribution = 'binomial')
     ## bvn parallel to traps
-    simgridalign1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
+    simgridalign1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = ncores, 
+                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', CL = TRUE, 
                                details = details, theta = 0) 
     ## bvn perpendicular to traps
-    simgridalign2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
+    simgridalign2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = ncores, 
+                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', CL = TRUE, 
                                details = details, theta = pi/2) 
 }
-save(simgridalign1, file = paste(vignettefolder, 'simgridalign1.RData', sep=''))
-save(simgridalign2, file = paste(vignettefolder, 'simgridalign2.RData', sep=''))
+save(simgridalign1, file = paste0(vignettefolder, 'simgridalign1.RData'))
+save(simgridalign2, file = paste0(vignettefolder, 'simgridalign2.RData'))
 ```
 ```{r, results="hold"}
-load(file = paste(vignettefolder, 'simgridalign1.RData', sep=''))
-load(file = paste(vignettefolder, 'simgridalign2.RData', sep=''))
+load(file = paste0(vignettefolder, 'simgridalign1.RData'))
+load(file = paste0(vignettefolder, 'simgridalign2.RData'))
 ```
 These results are much different to those with random alignment and a square grid. Clearly this is an important design consideration. Recaptures are likely to be along a trap line when these are oriented similarly to home ranges and the spacing between trap lines is large.
 ```{r plotgridalignment, fig.width = 4, fig.height = 4}
 par(mfrow=c(1,1), mar=c(4,4,4,4), xpd = FALSE)
-sumplot(simgridalign1, simgridalign2, leg = c('Parallel','Perpendicular'), ylim = c(-0.6,0.3))
+sumplot(list(Parallel = simgridalign1, Perpendicular = simgridalign2), ylim = c(-0.6,0.3))
 ```
 
-##Anisotropic home ranges as a solution
-
-In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space. Thanks to Ben Augustine for pointing the 'geoR' function `coords.aniso` that lets us do this. Whether this is a practical solution remains to be seen: if the parameters of the transformation are unknown and must be estimated (below) then intensive sampling may be needed to get good results.
-
-This is the only time in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
-
-```{r anisotropic, eval = FALSE}
-anisodistfn <- function (xy1,xy2, mask) {
-    if (missing(xy1)) return(character(0))
-    xy1 <- as.matrix(xy1)
-    xy2 <- as.matrix(xy2)
-    miscparm <- attr(mask, 'miscparm')
-    psiA <- miscparm[1]           ## anisotropy angle; identity link
-    psiR <- 1 + exp(miscparm[2])  ## anisotropy ratio; log link
-    aniso.xy1 <- geoR::coords.aniso(xy1, aniso.pars = c(psiA, psiR), reverse = FALSE)
-    aniso.xy2 <- geoR::coords.aniso(xy2, aniso.pars = c(psiA, psiR), reverse = FALSE)
-    distmat <- edist(aniso.xy1,aniso.xy2)
-    distmat ## nrow(xy1) x nrow(xy2) matrix
-}
-nrepl <- 10
-library(geoR)
-tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
-simaniso1 <- vector('list')
-simaniso2 <- vector('list')
-for (i in 1:4) {
-    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    ## parameters psiA and psiR are passed to anisodistfn
-    details <- list(distribution = 'binomial', userdist = anisodistfn, 
-             miscparm = c(psiA = 0.5, psiR = 1.5))
-#     ## bvn parallel to traps
-#     simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-#                                traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-#                                details = details, theta = 0) 
-#     ## bvn perpendicular to traps
-#     simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-#                                traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-#                                details = details, theta = pi/2) 
-    ## bvn parallel to traps
-    simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, 
-                               extractfn = predict, details = details, theta = 0) 
-    ## bvn perpendicular to traps
-    simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, 
-                               extractfn = predict, details = details, theta = pi/2) 
-}
-save(simaniso1, file = 'simaniso1.RData')
-save(simaniso2, file = 'simaniso2.RData')
-```
-
-```
-
-##Check circular using alternate method (sim.capthist)
-
-```{r checkcircular, eval = FALSE}
-nrepl <- 500
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-simcirc <- vector('list')
-simcircBVN <- vector('list')
-    sigmaX <- 25
-    details <- list(distribution = 'binomial')
-    ## uniform
-    simcirc[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 6, 
-                               traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                               details = details) 
-    ## bvn
-    simcircBVN[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 6, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details) 
-save(simcirc, file = 'simcirc.RData')
-save(simcircBVN, file = 'simcircBVN.RData')
-```
-```{r, results="hold"}
-load(file = 'simcirc.RData')
-load(file = 'simcircBVN.RData')
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-sumplot(simcirc, simcircBVN, legtext = c('Uniform','BVN'), plt = FALSE)
-
-```
-
-##Heterogeneous elliptical home ranges
-
-`simpopn.bvn` usually generates a population with equal-sized home ranges. The size and elongation of each range may be varied by providing a function as the argument `s2xy`:
-```{r heteroellipses, fig.width = 4, fig.height = 4}
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-rs2xy <- function(N, scale = 25) {   
-    aspectratio <- 1 + runif(N) * 3
-    cbind(scale^2 / aspectratio, scale^2 * aspectratio)
-}
-pop <- simpopn.bvn(s2xy = rs2xy, core = tr, buffer = 100, D = 1)
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = TRUE)
-plotpopn.bvn(pop, col='grey')
-```
-
-Heterogeneous populations may also simulated `runEllipseSim` by passing a function as the argument 'sigmaX'.
-
-```{r runhetero, cache = TRUE}
-sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2, 
-                       traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                       SECR = TRUE) 
-```
-
-
-=======
----
-title: '**secrBVN** - simulation of spatially explicit capture-recapture with bivariate normal home ranges'
-author: "Murray Efford"
-date: '`r Sys.Date()`'
-output:
-  pdf_document:
-    toc: true
-vignette: >
-  %\VignetteIndexEntry{Spatially Explicit Capture-Recapture with Bivariate Normal Home Ranges} 
-  %\VignetteEngine{knitr::rmarkdown} 
-  \usepackage[utf8]{inputenc}
----
-
-\vspace{16pt}
-
-This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses.
-
-The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn` and `runEllipseSim`.
-
-\vspace{12pt}
-
-
-#Generating and plotting elliptical home ranges
-
-`simpopn.bvn` is a wrapper for the **secr** function `sim.popn` that adds attributes specifying a bivariate normal home range shape, size and orientation for each individual. At first shape and size are the same for all individuals, but the resulting popn object may be modified so they vary individually.
-
-First, load the package.
-```{r startup}
-library(secrBVN)
-vignettefolder <- "c:/density secr 3.1/secrBVN/vignettes/"
-```
-
-```{r ellipses, fig.width=8, fig.height=3}
-tempgrid <- make.grid(nx = 10, ny = 10)
-par(mfrow=c(2,4), mar = c(2,2,2.6,2), xpd = TRUE)
-for (i in 1:4) {
-    s2xy <- 25^2 * c(1/i, i)
-    random.pop <- simpopn.bvn(s2xy = s2xy, core = tempgrid, buffer = 100, D = 1)
-    plotpopn.bvn(random.pop, col = 'lightblue')
-    mtext(side=3, line=1.5, i)
-}
-for (i in 1:4) {
-    s2xy <- 25^2 * c(1/i, i)
-    aligned.pop <- simpopn.bvn(s2xy = s2xy, core = tempgrid, buffer = 100, D = 1, theta = -1)
-    plotpopn.bvn(aligned.pop, col = 'lightblue')
-}
-```
-Fig. 1. Elliptical home ranges with varying ratio of major to minor axes as shown. Upper row oriented randomly and independently, lower row with shared random orientation ('randomly aligned').
-
-#Simulating
-
-## Generating detection histories
-
-Normally in **secr** we use `sim.capthist` to generate capture histories, but that is limited to circular detection functions. The function `simcapt.bvn` is a partial replacement for `sim.capthist` that models detection with a bivariate normal. Specifically, the probability of detection is a constant times the bivariate normal probability density at the detector. The constant is $g_0 2 \pi \sigma_X \sigma_Y$. The user provides a 'popn' object that includes the BVN parameter values ($\sigma_x^2, \sigma_y^2, \theta$) for each animal (row), as generated above by `simpopn.bvn`. The constant scales the BVN density so that the maximum detection probability is $g_0$.
-
-If `detectfn = 4` is selected then a uniform (flat-topped) elliptical home range is simulated.
-
-## Fitting a circular detection model to BVN data
-
-The function `runEllipseSim` is a wrapper for the preceding steps (`simpopn.bvn`, `simcapt.bvn`) that also fits a standard (circular) SECR model with `secr.fit`. The default population has fixed number of individuals within the rectangular buffered area around the detectors (`Ndist = 'fixed'`).
-
-Here we use a $6 \times 6$ grid of binary proximity detectors with 50 metre spacing. The code in **secrBVN** does not allow for competition among detectors (secr detector type 'multi') or other other secr detector types. A density of 4/ha gives exactly 169 animals in the buffered area. The intercept parameter g0 is varied to reduce the effect of `detectfn` on total number of captures and precision. Conditional likelihood is used for speed; the default `extractfn = derived` is compatible with both `CL = TRUE` and `CL = FALSE`. The 200-m buffer allows for the longest ranges ($\sigma_y = 50$ m).
-
-```{r runEllipseSim, eval = FALSE}
-nrepl <- 500
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-simrandom <- vector('list')
-simrandomBVN <- vector('list')
-for (i in 1:4) {
-    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    details <- list(distribution = 'binomial')
-    ## uniform
-    simrandom[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                               details = details) 
-    ## bvn
-    simrandomBVN[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details) 
-}
-save(simrandom, file = paste(vignettefolder, 'simrandom.RData', sep=''))
-save(simrandomBVN, file = paste(vignettefolder, 'simrandomBVN.RData', sep=''))
-```
-
-Construct a function to summarize the results:
-```{r sumplot, eval = TRUE}
-sumplot <- function (sims1, sims2, trueD = 4, xval = 1:4, ylim = c(-0.2,0.2), 
-                     legtext = c('setone' ,'settwo'), plt = TRUE) {
-    sumD <- function(x) {
-        Dval <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'estimate')
-        DSE  <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'SE.estimate')
-        Dlcl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'lcl')
-        Ducl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'ucl')
-        n <- sum(!is.na(Dval))
-        RB <- (Dval-trueD)/trueD
-        RSE <- DSE/Dval
-        COV <- (trueD>=Dlcl) & (trueD<=Ducl)
-        npop <- sapply(x, '[[', 'npop')
-        nCH <- sapply(x, '[[', 'nCH')
-        c(av.npop = mean(npop), av.nCH = mean(nCH), av.Dhat = mean(Dval), 
-          md.Dhat = median(Dval), sd.Dhat = sd(Dval),
-          RB = mean(RB), seRB = sd(Dval)/trueD/n^0.5, 
-          RSE = mean(RSE), seRSE = sd(RSE)/n^0.5, 
-          COV = mean(COV))
-    }    
-    out1 <- sapply(sims1, sumD)
-    out2 <- sapply(sims2, sumD)
-    if (plt) {
-        plot(xval, out1['RB',], ylim = ylim, xlab = 'Aspect ratio', 
-             ylab = 'Relative bias', pch=16, axes = FALSE)
-        axis(1, at=1:4)
-        axis(2)
-        segments(xval, out1['RB',]-2*out1['seRB',], 
-                 xval, out1['RB',]+2*out1['seRB',])
-        segments(xval+0.05, out2['RB',]-2*out2['seRB',], 
-                 xval+0.05, out2['RB',]+2*out2['seRB',])
-        points(xval+0.05, out2['RB',], pch = 21, bg = 'white')
-        abline(h=0, lty=2)
-        legend (par()$usr[2]*0.6, par()$usr[4]*0.95, legend = legtext, 
-                pch = c(16,21), cex = 0.8)
-    }
-    output <- list(out1,out2)
-    names(output) <- legtext
-    lapply(output,round,4)
-}
-
-```
-
-...and run it:
-```{r runsumplot, fig.width = 4, fig.height = 4}
-load(file = paste(vignettefolder, 'simrandom.RData', sep=''))
-load(file = paste(vignettefolder, 'simrandomBVN.RData', sep=''))
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-output <- sumplot(simrandom, simrandomBVN, legtext = c('Uniform','BVN'))
-```
-
-Fig. 2. Relative bias of density estimated by fitting circular SECR detection model to elliptical data, with 95\% confidence limit for simulated values. 'Uniform' home ranges were truncated at the 95\% activity contour of an equivalent bivariate normal, and detection probability was uniform inside the boundary. 'BVN' home ranges extended indefinitely in all directions.
-
-```{r}
-output
-```
-
-There is no apparent effect of range elongation itself on the bias of the estimates. Fitting a halfnormal detection function (detectfn = 0) to data from 'hard-edged' (uniform) home ranges (detectfn = 4) appears to result in negative bias on the order of --1% to --2% (Efford 2004 noted a relative bias of --1.2%, SE 0.8% for a small sample of 100 simulations fitting a model by inverse prediction in the circular case).
-
-#Limitations
-
-This package has the limited goal of determining how range elongation affects estimates of density in simple SECR models, and these specific limitations:
-
-1. Only binary proximity detectors are supported.
-2. The spatial distribution of activity centres is assumed to be homogeneous Poisson.
-3. 'g0' is used here loosely - probably it should be lambda0 ($\lambda_0$).
-4. Ellipses are specified using either 'sigmaX' and 'sigmaY' as separate arguments (`runEllipseSim`) or as a vector of the two values, squared ('s2xy'). This is confusing but it's better at this point not to change.
-
-#References
-
-Efford, M. G. (2004) Density estimation in live-trapping studies. *Oikos* **106**, 598--610.
-
-Huggins, R. M. (1989) On the statistical analysis of capture experiments. 
-*Biometrika* **76**, 133--140.
-
-Ivan, J. S., White, G. C. and Shenk, T. M. (2013) Using simulation to compare methods for 
-estimating density from capture--recapture data. *Ecology* **94**, 817--826.
-
-#Appendix. Supplementary simulations
-
-##Randomly aligned ellipses
-
-```{r randomalignment, eval = FALSE}
-nrepl <- 500
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-simalign <- vector('list')
-simalignBVN <- vector('list')
-for (i in 1:4) {
-    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    details <- list(distribution = 'binomial')
-    ## uniform
-    simalign[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                               details = details, theta = -1) 
-    ## bvn
-    simalignBVN[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details, theta = -1) 
-}
-save(simalign, file = paste(vignettefolder, 'simalign.RData', sep=''))
-save(simalignBVN, file = paste(vignettefolder, 'simalignBVN.RData', sep=''))
-```
-These results are not much different to those with random alignment, although the coverage is perhaps slightly worse.
-```{r plotrandomalignment, fig.width = 4, fig.height = 4}
-load(file = paste(vignettefolder, 'simalign.RData', sep=''))
-load(file = paste(vignettefolder, 'simalignBVN.RData', sep=''))
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-sumplot(simalign, simalignBVN, legtext = c('AlignedUniform','AlignedBVN'))
-```
-
-##Grid-aligned ellipses
-
-Consider a scenario in which the trapping grid has a strong 'grain' (orientation) and elongated home ranges are aligned with the trapping grid.
-
-```{r alignedellipses, fig.width=8, fig.height=3.5}
-tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
-par(mfrow=c(2,4), mar = c(2,2,2.6,2), xpd = TRUE)
-for (i in 1:4) {
-    s2xy <- 25^2 * c(1/i, i)
-    pop <- simpopn.bvn(s2xy = s2xy, core = tr, buffer = 100, D = 1, theta = 0)
-    plotpopn.bvn(pop, col = 'lightblue')
-    plot(tr, add=T)
-    mtext(side=3, line=1.5, i)
-}
-for (i in 1:4) {
-    s2xy <- 25^2 * c(1/i, i)
-    pop <- simpopn.bvn(s2xy = s2xy, core = tr, buffer = 100, D = 1, theta = pi/2)
-    plotpopn.bvn(pop, col = 'lightblue')
-    plot(tr, add=T)
-}
-```
-
-```{r gridalignment, eval = FALSE}
-nrepl <- 500
-tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
-simgridalign1 <- vector('list')
-simgridalign2 <- vector('list')
-for (i in 1:4) {
-    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    details <- list(distribution = 'binomial')
-    ## bvn parallel to traps
-    simgridalign1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details, theta = 0) 
-    ## bvn perpendicular to traps
-    simgridalign2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 20, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details, theta = pi/2) 
-}
-save(simgridalign1, file = paste(vignettefolder, 'simgridalign1.RData', sep=''))
-save(simgridalign2, file = paste(vignettefolder, 'simgridalign2.RData', sep=''))
-```
-```{r, results="hold"}
-load(file = paste(vignettefolder, 'simgridalign1.RData', sep=''))
-load(file = paste(vignettefolder, 'simgridalign2.RData', sep=''))
-```
-These results are much different to those with random alignment and a square grid. Clearly this is an important design consideration. Recaptures are likely to be along a trap line when these are oriented similarly to home ranges and the spacing between trap lines is large.
-```{r plotgridalignment, fig.width = 4, fig.height = 4}
-par(mfrow=c(1,1), mar=c(4,4,4,4), xpd = FALSE)
-sumplot(simgridalign1, simgridalign2, leg = c('Parallel','Perpendicular'), ylim = c(-0.6,0.3))
-```
-
-##Anisotropic home ranges as a solution
-
-In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space. Thanks to Ben Augustine for pointing the 'geoR' function `coords.aniso` that lets us do this. Whether this is a practical solution remains to be seen: if the parameters of the transformation are unknown and must be estimated (below) then intensive sampling may be needed to get good results.
-
-This is the only time in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
-
-```{r anisotropic, eval = FALSE}
-anisodistfn <- function (xy1,xy2, mask) {
-    if (missing(xy1)) return(character(0))
-    xy1 <- as.matrix(xy1)
-    xy2 <- as.matrix(xy2)
-    miscparm <- attr(mask, 'miscparm')
-    psiA <- miscparm[1]           ## anisotropy angle; identity link
-    psiR <- 1 + exp(miscparm[2])  ## anisotropy ratio; log link
-    aniso.xy1 <- geoR::coords.aniso(xy1, aniso.pars = c(psiA, psiR), reverse = FALSE)
-    aniso.xy2 <- geoR::coords.aniso(xy2, aniso.pars = c(psiA, psiR), reverse = FALSE)
-    distmat <- edist(aniso.xy1,aniso.xy2)
-    distmat ## nrow(xy1) x nrow(xy2) matrix
-}
-nrepl <- 10
-library(geoR)
-tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
-simaniso1 <- vector('list')
-simaniso2 <- vector('list')
-for (i in 1:4) {
-    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    ## parameters psiA and psiR are passed to anisodistfn
-    details <- list(distribution = 'binomial', userdist = anisodistfn, 
-             miscparm = c(psiA = 0.5, psiR = 1.5))
-#     ## bvn parallel to traps
-#     simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-#                                traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-#                                details = details, theta = 0) 
-#     ## bvn perpendicular to traps
-#     simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-#                                traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-#                                details = details, theta = pi/2) 
-    ## bvn parallel to traps
-    simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, 
-                               extractfn = predict, details = details, theta = 0) 
-    ## bvn perpendicular to traps
-    simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 1, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, 
-                               extractfn = predict, details = details, theta = pi/2) 
-}
-save(simaniso1, file = 'simaniso1.RData')
-save(simaniso2, file = 'simaniso2.RData')
-```
-
-```
-
-##Check circular using alternate method (sim.capthist)
-
-```{r checkcircular, eval = FALSE}
-nrepl <- 500
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-simcirc <- vector('list')
-simcircBVN <- vector('list')
-    sigmaX <- 25
-    details <- list(distribution = 'binomial')
-    ## uniform
-    simcirc[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 6, 
-                               traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                               details = details) 
-    ## bvn
-    simcircBVN[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 6, 
-                               traps = tr, g0 = 0.4, D = 4, detectfn = 0, CL = TRUE, 
-                               details = details) 
-save(simcirc, file = 'simcirc.RData')
-save(simcircBVN, file = 'simcircBVN.RData')
-```
-```{r, results="hold"}
-load(file = 'simcirc.RData')
-load(file = 'simcircBVN.RData')
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-sumplot(simcirc, simcircBVN, legtext = c('Uniform','BVN'), plt = FALSE)
-
-```
-
-##Heterogeneous elliptical home ranges
-
-`simpopn.bvn` usually generates a population with equal-sized home ranges. The size and elongation of each range may be varied by providing a function as the argument `s2xy`:
-```{r heteroellipses, fig.width = 4, fig.height = 4}
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-rs2xy <- function(N, scale = 25) {   
-    aspectratio <- 1 + runif(N) * 3
-    cbind(scale^2 / aspectratio, scale^2 * aspectratio)
-}
-pop <- simpopn.bvn(s2xy = rs2xy, core = tr, buffer = 100, D = 1)
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = TRUE)
-plotpopn.bvn(pop, col='grey')
-```
-
-Heterogeneous populations may also simulated `runEllipseSim` by passing a function as the argument 'sigmaX'.
-
-```{r runhetero, cache = TRUE}
-sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2, 
-                       traps = tr, g0 = 0.2, D = 4, detectfn = 4, CL = TRUE, 
-                       SECR = TRUE) 
-```
-
-
->>>>>>> 67bfb5b162dab3c4406b76b4faf48eabee35533f
 [secrdesign]: https://CRAN.R-project.org/package=secrdesign/vignettes/secrdesign-vignette.pdf
