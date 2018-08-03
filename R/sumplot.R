@@ -51,8 +51,9 @@ sumplot <- function (simlist, trueD = 4, plt = TRUE,
         axis(2, las = 1)
         abline(h=0, lty=2)
         if (legend)
-            legend (par()$usr[2]*0.7, par()$usr[4]*0.95, legend = names(simlist),
-                    pch = pchi, cex = 0.9, pt.cex=1.2)
+            legend ((par()$usr[2] - par()$usr[1]) * 0.1 + par()$usr[1],  
+                    par()$usr[4]*0.95, legend = names(simlist),
+                    pch = pchi, cex = 0.9, pt.cex = 1.2, adj = 0)
     }
     if (is.null(compact)) {
         out <- lapply(outlist,round,ndec)
