@@ -9,6 +9,7 @@ sumplot <- function (simlist, trueD = 4, plt = TRUE,
         Dlcl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'lcl')
         Ducl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'ucl')
         sigval <- sapply(lapply(x, '[[', 'pred'), '[[', 'sigma', 'estimate')
+        if (is.null(sigval[[1]])) sigval <- NA
         n <- sum(!is.na(Dval))
         RB <- (Dval-trueD)/trueD
         RSE <- DSE/Dval
