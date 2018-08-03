@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 citHeader("To cite package 'secrBVN' in publications use:")
 year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
 vers <- paste("R package version", meta$Version)
@@ -12,18 +11,3 @@ paste("Efford, M. G. (",
 year,
 "). secrBVN: SECR with Bivariate-Normal Home Ranges ",
 vers, ".", sep=""))
-=======
-citHeader("To cite package 'secrBVN' in publications use:")
-year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
-vers <- paste("R package version", meta$Version)
-citEntry(entry="Manual",
-title = "secrBVN: SECR with Bivariate-Normal Home Ranges",
-author = personList(as.person("Murray Efford")),
-year = year,
-note = vers,
-textVersion =
-paste("Efford, M. G. (",
-year,
-"). secrBVN: SECR with Bivariate-Normal Home Ranges ",
-vers, ".", sep=""))
->>>>>>> 67bfb5b162dab3c4406b76b4faf48eabee35533f
