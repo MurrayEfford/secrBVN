@@ -55,12 +55,13 @@ sumplot <- function (simlist, trueD = 4, plt = TRUE,
                     pch = pchi, cex = 0.9, pt.cex=1.2)
     }
     if (is.null(compact)) {
-        lapply(outlist,round,ndec)
+        out <- lapply(outlist,round,ndec)
     }
     else {
         comp <- function (out) {
             round(t(out)[,compact], ndec)
         }
-        lapply(outlist, comp)
+        out <- lapply(outlist, comp)
     }
+    invisible(out)
 }

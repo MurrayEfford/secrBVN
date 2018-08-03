@@ -42,7 +42,7 @@ Each component of \code{simlist} should have the same number of components (elli
 
 \value{
 
-List of output matrices (tables)
+Invisibly returns list of output matrices (tables)
 
 }
 
@@ -76,7 +76,7 @@ for (i in 1:4) {
 
 sumplot(list(Uniform = simrandom, BVN = simrandomBVN), legend = TRUE)
 
-sumplot(list(Uniform = simrandom36.2, BVN = simrandomBVN36.2), plt = FALSE)
+print(sumplot(list(Uniform = simrandom36.2, BVN = simrandomBVN36.2), plt = FALSE))
 
 }
 
