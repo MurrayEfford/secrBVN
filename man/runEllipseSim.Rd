@@ -11,7 +11,7 @@ A wrapper for other bvn functions.
 \usage{
 
 runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
-    type = c('uniform','BVN'), g0 = 0.2, lambda0 = 0.2, p = 0.95, traps = NULL, 
+    type = c('uniform','BVN'), g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, 
     noccasions = 5, buffer =100, D = 10, extractfn = derived, seed = NULL, 
     ncores = 1, SECR = TRUE, Ndist = 'fixed', ...) 
 

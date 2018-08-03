@@ -1,6 +1,6 @@
 ## modified 2018-07-26 to also report predicted values 
 runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, type = c('uniform', 'BVN'), 
-                          g0 = 0.2, lambda0 = 0.2, p = 0.95, traps = NULL, noccasions = 5, buffer = 100, D = 10, 
+                          g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, noccasions = 5, buffer = 100, D = 10, 
                           extractfn = derived, seed = NULL, ncores = 1, SECR = TRUE, Ndist = 'fixed', ...) {
     onereplicate <- function (r) {
         if (is.null(sigmaY) & !is.function(sigmaX)) {
