@@ -2,7 +2,7 @@ sumplot <- function (simlist, trueD = 4, plt = TRUE,
                      xval = 1:4, xlim = c(0.7,4.3), ylim = c(-0.2,0.2),
                      legend = TRUE, pchi = c(21, 16, 22, 23),
                      compact = c('av.nCH', 'RB', 'RSE', 'COV'),
-                     ndec = 3) {
+                     dec = 3) {
     sumD <- function(x) {
         Dval <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'estimate')
         DSE  <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'SE.estimate')
@@ -56,11 +56,11 @@ sumplot <- function (simlist, trueD = 4, plt = TRUE,
                     pch = pchi, cex = 0.9, pt.cex = 1.2, adj = 0)
     }
     if (is.null(compact)) {
-        out <- lapply(outlist,round,ndec)
+        out <- lapply(outlist,round, dec)
     }
     else {
         comp <- function (out) {
-            round(t(out)[,compact], ndec)
+            round(t(out)[,compact], dec)
         }
         out <- lapply(outlist, comp)
     }

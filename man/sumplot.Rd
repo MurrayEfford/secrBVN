@@ -13,7 +13,7 @@ A list of outputs from \code{\link{runEllipseSim}} is summarised and optionally 
 
 sumplot(simlist, trueD = 4, plt = TRUE, xval = 1:4, xlim = c(0.7, 4.3), ylim = c(-0.2, 0.2),
     legend = TRUE, pchi = c(21, 16, 22, 23), compact = c("av.nCH", "RB", "RSE", "COV"), 
-    ndec = 3)
+    dec = 3)
 
 }
 
@@ -28,7 +28,7 @@ sumplot(simlist, trueD = 4, plt = TRUE, xval = 1:4, xlim = c(0.7, 4.3), ylim = c
   \item{legend}{logical; if TRUE a legend is displayed}
   \item{pchi}{numeric vector for symbol to use for each component of \code{simlist}}
   \item{compact}{character vector for summary statistics to include in output (NULL for all)}
-  \item{ndec}{integer number of decimal places in output}
+  \item{dec}{integer number of decimal places in output}
 
 }
 
