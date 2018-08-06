@@ -1,40 +1,38 @@
-sumplot <- function (simlist, trueD = 4, plt = TRUE, 
+sumplot <- function (simlist, parm = "D", trueval = 4, plt = TRUE, 
                      xval = 1:4, xlim = c(0.7,4.3), ylim = c(-0.2,0.2),
                      legend = TRUE, pchi = c(21, 16, 22, 23),
+                     component = c("fit", "pred"),
                      compact = c('av.nCH', 'RB', 'RSE', 'COV'),
                      dec = 3) {
     sumD <- function(x) {
-        Dval <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'estimate')
-        DSE  <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'SE.estimate')
-        Dlcl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'lcl')
-        Ducl <- sapply(lapply(x, '[[', 'fit'), '[[', 'D', 'ucl')
-        sigval <- sapply(lapply(x, '[[', 'pred'), '[[', 'sigma', 'estimate')
-        if (is.null(sigval[[1]])) sigval <- NA
+        Dval <- sapply(lapply(x, '[[', component), '[[', parm, 'estimate')
+        DSE  <- sapply(lapply(x, '[[', component), '[[', parm, 'SE.estimate')
+        Dlcl <- sapply(lapply(x, '[[', component), '[[', parm, 'lcl')
+        Ducl <- sapply(lapply(x, '[[', component), '[[', parm, 'ucl')
         n <- sum(!is.na(Dval))
-        RB <- (Dval-trueD)/trueD
+        RB <- (Dval-trueval)/trueval
         RSE <- DSE/Dval
-        COV <- (trueD>=Dlcl) & (trueD<=Ducl)
+        COV <- (trueval>=Dlcl) & (trueval<=Ducl)
         npop <- sapply(x, '[[', 'npop')
         nCH <- sapply(x, '[[', 'nCH')
         c(av.npop = mean(npop), 
           av.nCH = mean(nCH), 
           nvalid = n,
-          av.Dhat = mean(Dval, na.rm = T),
-          md.Dhat = median(Dval, na.rm = T), 
-          sd.Dhat = sd(Dval, na.rm = T),
+          av.parmhat = mean(Dval, na.rm = T),
+          md.parmhat = median(Dval, na.rm = T), 
+          sd.parmhat = sd(Dval, na.rm = T),
           RB = mean(RB, na.rm = T), 
-          seRB = sd(Dval, na.rm = T)/trueD/n^0.5,
+          seRB = sd(Dval, na.rm = T)/trueval/n^0.5,
           RSE = mean(RSE, na.rm = T), 
           seRSE = sd(RSE, na.rm = T)/n^0.5,
-          COV = mean(COV, na.rm = T),
-          av.sighat = mean(sigval, na.rm = T),
-          se.sighat = sd(sigval, na.rm = T)/sqrt(n))
+          COV = mean(COV, na.rm = T))
     }
     tidy <- function (x) {
         tmp <- sapply(x, sumD)
         colnames(tmp) <- names(x)
         tmp
     }
+    component <- match.arg(component)
     outlist <- lapply(simlist, tidy)
     if (plt) {
         plotone <- function (out, i) {

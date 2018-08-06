@@ -4,6 +4,7 @@ runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, t
                           D = 10, extractfn = derived, seed = NULL, ncores = 1, outfile = "cluster.log", 
                           SECR = TRUE, Ndist = 'fixed', ...) {
     onereplicate <- function (r) {
+
         if (is.null(sigmaY) & !is.function(sigmaX)) {
             ## simple and direct circular using conventional secr::sim.capthist
             pop <- sim.popn(core = traps, buffer = buffer, D = D, Ndist = Ndist)
