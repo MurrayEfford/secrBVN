@@ -1,7 +1,8 @@
 ## modified 2018-07-26 to also report predicted values 
 runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, type = c('uniform', 'BVN'), 
-                          g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, noccasions = 5, buffer = 100, D = 10, 
-                          extractfn = derived, seed = NULL, ncores = 1, SECR = TRUE, Ndist = 'fixed', ...) {
+                          g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, noccasions = 5, buffer = 100, 
+                          D = 10, extractfn = derived, seed = NULL, ncores = 1, outfile = "cluster.log", 
+                          SECR = TRUE, Ndist = 'fixed', ...) {
     onereplicate <- function (r) {
         if (is.null(sigmaY) & !is.function(sigmaX)) {
             ## simple and direct circular using conventional secr::sim.capthist
@@ -62,9 +63,10 @@ runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, t
     }
     else {
         ## use 'parallel'
-        list(...)    ## ensures promises evaluated see parallel vignette 2015-02-02        
-        clust <- makeCluster(ncores)
-        clusterSetRNGStream(clust, seed)                
+        list(...)    ## ensures promises evaluated see parallel vignette 2015-02-02  
+        unlink(outfile)  ## delete any existing log file
+        clust <- makeCluster(ncores, outfile = outfile)
+        clusterSetRNGStream(clust, seed)  
         output <- parLapply (clust, 1:nrepl, onereplicate)
         stopCluster(clust)        
     }
