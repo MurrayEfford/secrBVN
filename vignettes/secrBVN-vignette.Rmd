@@ -13,16 +13,13 @@ vignette: >
 
 \vspace{16pt}
 
-This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses. Code to use **secrBVN** for the simulations of Efford (in prep.) is provided in the [Appendix](#Appendix).
+This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses. Here we assume detection hazard is directly proportional to home range utilisation (activity). Code to use **secrBVN** for the simulations of Efford (in prep.) is provided in the [Appendix](#Appendix).
 
 The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`, `runEllipseSim` and `sumplot`.
 
-
-
 \vspace{12pt}
 
-
-#Generating and plotting elliptical home ranges
+# Generating and plotting elliptical home ranges
 
 `simpopn.bvn` is a wrapper for the **secr** function `sim.popn` that adds attributes specifying a bivariate normal home range shape, size and orientation for each individual. By default, shape and size are the same for all individuals, but the resulting popn object may be modified so they vary individually (see [Heterogeneous elliptical home ranges](#heterogeneity)).
 
@@ -30,6 +27,7 @@ First, load the package.
 ```{r startup}
 library(secrBVN)
 vignettefolder <- "c:/density secr 3.1/secrBVN/vignettes/"
+simfolder <- "c:/density communication/noncircularity/paper/simulations/"
 runall <- FALSE  # skip lengthy simulations
 ncores <- 20     # for simulations
 ```
@@ -51,13 +49,13 @@ for (i in 1:4) {
 ```
 Fig. 1. Elliptical home ranges with varying ratio of major to minor axes as shown. Upper row oriented randomly and independently, lower row with shared random orientation ('randomly aligned').
 
-#Simulating
+# Simulating elliptical detection data
 
 ## Generating detection histories
 
 Normally in **secr** we use `sim.capthist` to generate capture histories, but that is limited to circular detection functions. The function `simcapt.bvn` is a partial replacement for `sim.capthist` that models detection with a bivariate normal. Specifically, the cumulative hazard of detection is a constant times the bivariate normal probability density at the detector. The constant is $\lambda_0 2 \pi \sigma_X \sigma_Y$. The user provides a 'popn' object that includes the BVN parameter values ($\sigma_x^2, \sigma_y^2, \theta$) for each animal (row), as generated above by `simpopn.bvn`. The constant scales the BVN density so that the maximum hazard is $\lambda_0$.
 
-The preceding paragraph describes the default behaviour of `simcapt.bvn`. If `type = uniform` is selected then a uniform (flat-topped) elliptical home range is simulated. The uniform probability of detection within the ellipse is controlled by `g0`.
+The preceding paragraph describes the default behaviour of `simcapt.bvn`. If `type = uniform` is selected then a uniform (flat-topped) elliptical home range is simulated. The uniform probability of detection within the ellipse is controlled by `g0`, not `lambda0`.
 
 ## Fitting a circular detection model to BVN data
 
@@ -152,15 +150,13 @@ sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2,
                        SECR = TRUE) 
 ```
 
-#Anisotropic home ranges as a solution
+# Anisotropic home ranges as a solution
 
-In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space. Thanks to Ben Augustine for pointing the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018). Whether this is a practical solution remains to be seen: if the parameters of the transformation are unknown and must be estimated (below) then intensive sampling may be needed to get good results.
+In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space. Thanks to Ben Augustine for pointing the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018). Whether this is a practical solution remains to be seen: if the parameters of the transformation are unknown and must be estimated (below) then intensive sampling may be needed to get good results. 
 
-This is the only time in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
+The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested below on a hollow square array. This is the only time in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
 
-[2018-08-04 It is not clear whether this code correctly adjusts for the transformation - density may be in the transformed space]
-
-```{r anisotropic, eval = runall}
+```{r anisotropic, eval = runall, echo = TRUE}
 anisodistfn <- function (xy1, xy2, mask) {
     if (missing(xy1)) return(character(0))
     xy1 <- as.matrix(xy1)
@@ -168,48 +164,47 @@ anisodistfn <- function (xy1, xy2, mask) {
     miscparm <- attr(mask, 'miscparm')
     psiA <- miscparm[1]           # anisotropy angle; identity link
     psiR <- 1 + exp(miscparm[2])  # anisotropy ratio; log link
-    aniso.xy1 <- geoR::coords.aniso(xy1, aniso.pars = c(psiA, psiR), reverse = FALSE)
-    aniso.xy2 <- geoR::coords.aniso(xy2, aniso.pars = c(psiA, psiR), reverse = FALSE)
-    distmat <- edist(aniso.xy1,aniso.xy2)
-    distmat # nrow(xy1) x nrow(xy2) matrix
+    aniso.xy1 <- geoR::coords.aniso(xy1, aniso.pars = c(psiA, psiR))
+    aniso.xy2 <- geoR::coords.aniso(xy2, aniso.pars = c(psiA, psiR))
+    secr::edist(aniso.xy1, aniso.xy2) # nrow(xy1) x nrow(xy2) matrix
 }
-nrepl <- 20
+nrepl <- 500
 ncores <- 20
 library(geoR)
-tr <- make.grid(36, 1, spacex = 25, spacey = 25, detector = 'proximity')
+tr <- make.grid(10, 10, spacex = 25, spacey = 25, detector = 'proximity', hollow = TRUE)
 simaniso1 <- vector('list', 4); names(simaniso1) <- 1:4
 simaniso3 <- simaniso2 <- simaniso1
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    # parameters psiA and psiR are passed to anisodistfn
+    # parameters psiA and psiR are passed to anisodistfn in mask attribute
     details <- list(distribution = 'binomial', userdist = anisodistfn, 
              miscparm = c(psiA = 0.5, psiR = 1.5))
     # bvn parallel to traps
     simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
         ncores = ncores,  traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        details = details, theta = 0) 
+        details = details, detectfn = 'HHN', extractfn = coef, theta = 0) 
     # bvn oblique to traps
     simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
         ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        details = details, theta = pi/4) 
-    # bvn perpendicular to traps
+        details = details, detectfn = 'HHN', extractfn = coef, theta = pi/4) 
+    # bvn random orientation
     simaniso3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
         ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        details = details, theta = pi/2) 
+        details = details, detectfn = 'HHN', extractfn = coef, theta = NULL) 
 }
-save(simaniso1, file = paste0(vignettefolder, 'simaniso1.RData'))
-save(simaniso2, file = paste0(vignettefolder, 'simaniso2.RData'))
-save(simaniso3, file = paste0(vignettefolder, 'simaniso3.RData'))
+save(simaniso1, file = paste0(simfolder, 'simaniso1.RData'))
+save(simaniso2, file = paste0(simfolder, 'simaniso2.RData'))
+save(simaniso3, file = paste0(simfolder, 'simaniso3.RData'))
 ```
 
-```(r sumplotaniso)
-load(file = paste0(vignettefolder, 'simaniso1.RData'))
-load(file = paste0(vignettefolder, 'simaniso2.RData'))
-load(file = paste0(vignettefolder, 'simaniso3.RData'))
+```{r sumplotaniso, echo = TRUE, eval = FALSE}
+load(file = paste0(simfolder, 'simaniso1.RData'))
+load(file = paste0(simfolder, 'simaniso2.RData'))
+load(file = paste0(simfolder, 'simaniso3.RData'))
 sumplot(list(Parallel = simaniso1, 
-             Oblique = simaniso2, 
-             Perpendicular = simaniso3),
-             plt = FALSE)
+             Oblique = simaniso2,
+             Random = simaniso3),
+             component = "pred", plt = TRUE)
 ```
 
 The package **intamap** (Pebesma et al. 2010) also offers anisotropic transformation in function `rotateAnisotropicData`.
@@ -222,7 +217,7 @@ This package has the limited goal of determining how range elongation affects es
 2. The spatial distribution of activity centres is assumed to be homogeneous Poisson.
 3. Ellipses are specified using either 'sigmaX' and 'sigmaY' as separate arguments (`runEllipseSim`) or as a vector of the two values, squared ('s2xy' in `simpopn.bvn`). This is confusing but it's better at this point not to change.
 
-#References
+# References
 
 Efford, M. G. (2004) Density estimation in live-trapping studies. *Oikos* **106**, 598--610.
 
@@ -242,14 +237,14 @@ Ribeiro, P. J. Jr and Diggle, P. J. (2018). geoR: Analysis of
   Geostatistical Data. R package version 1.7-5.2.1.
   https://CRAN.R-project.org/package=geoR.
 
-#Appendix. Code for simulations of Efford (in prep)  {#Appendix}
+# Appendix. Code for simulations of Efford (in prep)  {#Appendix}
 
 ```{r simfolder}
 simfolder <- "c:/density communication/noncircularity/paper/simulations/"
 nrepl <- 500
-ncores <- 20
-runsim <- FALSE
-details <- list(distribution = 'binomial') # all simulations fixed-N
+ncores <- 20                               # for machine with at least 20 cores
+runsim <- FALSE                            # change to TRUE to execute all simulations
+details <- list(distribution = 'binomial') # all simulations assume fixed N
 ```
 
 Functions for heterogeneous aspect ratio.
@@ -276,7 +271,7 @@ simrandomBVN100.2 <- simrandom100.2
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
     simrandom100.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
-        ncores = ncores,traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
+        ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
         CL = TRUE, detectfn = 'HHN', details = details)
     simrandomBVN100.2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
         ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
@@ -580,59 +575,6 @@ save(simrandomBVN100C.2, file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
 load(file = paste0(simfolder, 'simrandom100C.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
 sumplot(list(Uniform = simrandom100C.2, BVN = simrandomBVN100C.2), legend = TRUE)
-```
-
-# Old appendix 2018-08-04
-
-##Grid-aligned ellipses
-
-Consider a scenario in which the trapping grid has a strong 'grain' (orientation) and elongated home ranges are aligned with the trapping grid.
-
-```{r alignedellipses, fig.width=8, fig.height=3.5}
-tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
-par(mfrow=c(2,4), mar = c(2,2,2.6,2), xpd = TRUE)
-for (i in 1:4) {
-    s2xy <- 25^2 * c(1/i, i)
-    pop <- simpopn.bvn(s2xy = s2xy, core = tr, buffer = 100, D = 1, theta = 0)
-    plotpopn.bvn(pop, col = 'lightblue')
-    plot(tr, add=T)
-    mtext(side=3, line=1.5, i)
-}
-for (i in 1:4) {
-    s2xy <- 25^2 * c(1/i, i)
-    pop <- simpopn.bvn(s2xy = s2xy, core = tr, buffer = 100, D = 1, theta = pi/2)
-    plotpopn.bvn(pop, col = 'lightblue')
-    plot(tr, add=T)
-}
-```
-
-```{r gridalignment, eval = runall}
-nrepl <- 500
-tr <- make.grid(3,11, spacex = 125, spacey = 25, detector = 'proximity')
-simgridalign1 <- vector('list', 4); names(simgridalign1) <- 1:4
-simgridalign2 <- simgridalign1
-for (i in 1:4) {
-    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    ## bvn parallel to traps
-    simgridalign1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = ncores, 
-                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', CL = TRUE, 
-                               details = details, theta = 0) 
-    ## bvn perpendicular to traps
-    simgridalign2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = ncores, 
-                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', CL = TRUE, 
-                               details = details, theta = pi/2) 
-}
-save(simgridalign1, file = paste0(vignettefolder, 'simgridalign1.RData'))
-save(simgridalign2, file = paste0(vignettefolder, 'simgridalign2.RData'))
-```
-```{r, results="hold"}
-load(file = paste0(vignettefolder, 'simgridalign1.RData'))
-load(file = paste0(vignettefolder, 'simgridalign2.RData'))
-```
-These results are much different to those with random alignment and a square grid. Clearly this is an important design consideration. Recaptures are likely to be along a trap line when these are oriented similarly to home ranges and the spacing between trap lines is large.
-```{r plotgridalignment, fig.width = 4, fig.height = 4}
-par(mfrow=c(1,1), mar=c(4,4,4,4), xpd = FALSE)
-sumplot(list(Parallel = simgridalign1, Perpendicular = simgridalign2), ylim = c(-0.6,0.3))
 ```
 
 [secrdesign]: https://CRAN.R-project.org/package=secrdesign/vignettes/secrdesign-vignette.pdf
