@@ -15,7 +15,7 @@ vignette: >
 
 This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses. Here we assume detection hazard is directly proportional to home range utilisation (activity). Code to use **secrBVN** for the simulations of Efford (in prep.) is provided in the [Appendix](#Appendix).
 
-The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`, `runEllipseSim` and `sumplot`.
+The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`, `runEllipseSim` and `simsum` and `simplot`.
 
 \vspace{12pt}
 
@@ -84,13 +84,13 @@ save(simrandom, file = paste0(vignettefolder, 'simrandom36.2.RData'))
 save(simrandomBVN, file = paste0(vignettefolder, 'simrandomBVN36.2.RData'))
 ```
 
-The package function `sumplot` is used to summarize the results
+The package function `simplot` is used to summarize the results
 
 ```{r runsumplot, fig.width = 4, fig.height = 4}
 load(file = paste0(vignettefolder, 'simrandom36.2.RData'))
 load(file = paste0(vignettefolder, 'simrandomBVN36.2.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-output <- sumplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]))
+output <- simplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]))
 ```
 
 Fig. 2. Relative bias of density estimated by fitting circular SECR detection model to elliptical data, with 95\% confidence limit for simulated values. 'Uniform' home ranges were truncated at the 95\% activity contour of an equivalent bivariate normal, and detection probability was uniform inside the boundary. 'BVN' home ranges extended indefinitely in all directions.
@@ -125,7 +125,7 @@ save(simcircBVN, file = 'simcircBVN.RData')
 load(file = paste0(vignettefolder, 'simcirc.RData'))
 load(file = paste0(vignettefolder, 'simcircBVN.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-sumplot(list(Uniform = simcirc, BVN = simcircBVN), plt = FALSE)
+simsum(list(Uniform = simcirc, BVN = simcircBVN))
 ```
 
 ##Heterogeneous elliptical home ranges  {#heterogeneity}
@@ -152,9 +152,11 @@ sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2,
 
 # Anisotropic home ranges as a solution
 
-In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space. Thanks to Ben Augustine for pointing the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018). Whether this is a practical solution remains to be seen: if the parameters of the transformation are unknown and must be estimated (below) then intensive sampling may be needed to get good results. 
+In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space (Murphy et al. 2016). A simple transformation uses two parameters: $\psi_A$ for the orientation and $\psi_R$ for the degree of inflation or contraction. Thanks to Ben Augustine for pointing out the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018).
 
-The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested below on a hollow square array. This is the only time in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
+The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested below on a hollow square array. In this version both transformation parameters are estimated (cf Murphy et al. 2016). This is the only place in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
+
+The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. Transformation parameters are handled in the undocumented 'miscparm' feature of 'secr'. This allows supernumerary unmodelled parameters to be included in the vector of coefficients (beta parameters) passed to the distance function and over which the likelihood is maximised. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places.
 
 ```{r anisotropic, eval = runall, echo = TRUE}
 anisodistfn <- function (xy1, xy2, mask) {
@@ -173,12 +175,12 @@ ncores <- 20
 library(geoR)
 tr <- make.grid(10, 10, spacex = 25, spacey = 25, detector = 'proximity', hollow = TRUE)
 simaniso1 <- vector('list', 4); names(simaniso1) <- 1:4
-simaniso3 <- simaniso2 <- simaniso1
+simaniso4 <- simaniso3 <- simaniso2 <- simaniso1
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
     # parameters psiA and psiR are passed to anisodistfn in mask attribute
     details <- list(distribution = 'binomial', userdist = anisodistfn, 
-             miscparm = c(psiA = 0.5, psiR = 1.5))
+             miscparm = c(psiA = 0.5, psiR = 1.5))  # miscparm initial values
     # bvn parallel to traps
     simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
         ncores = ncores,  traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
@@ -191,20 +193,25 @@ for (i in 1:4) {
     simaniso3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
         ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
         details = details, detectfn = 'HHN', extractfn = coef, theta = NULL) 
+    # bvn common random orientation
+    simaniso4[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        details = details, detectfn = 'HHN', extractfn = coef, theta = -1) 
 }
 save(simaniso1, file = paste0(simfolder, 'simaniso1.RData'))
 save(simaniso2, file = paste0(simfolder, 'simaniso2.RData'))
 save(simaniso3, file = paste0(simfolder, 'simaniso3.RData'))
+save(simaniso4, file = paste0(simfolder, 'simaniso4.RData'))
 ```
 
 ```{r sumplotaniso, echo = TRUE, eval = FALSE}
 load(file = paste0(simfolder, 'simaniso1.RData'))
 load(file = paste0(simfolder, 'simaniso2.RData'))
 load(file = paste0(simfolder, 'simaniso3.RData'))
-sumplot(list(Parallel = simaniso1, 
+simplot(list(Parallel = simaniso1, 
              Oblique = simaniso2,
              Random = simaniso3),
-             component = "pred", plt = TRUE)
+             component = "pred")
 ```
 
 The package **intamap** (Pebesma et al. 2010) also offers anisotropic transformation in function `rotateAnisotropicData`.
@@ -229,6 +236,8 @@ Huggins, R. M. (1989) On the statistical analysis of capture experiments.
 Ivan, J. S., White, G. C. and Shenk, T. M. (2013) Using simulation to compare methods for 
 estimating density from capture--recapture data. 
 *Ecology* **94**, 817--826.
+
+Murphy, S. M., Cox, J. J., Augustine, B. C., Hast, J. T., Guthrie, J. M., Wright, J., McDermott, J., Maehr, S. C. and Plaxico, J. H. (2016) Characterizing recolonization by a reintroduced bear population using genetic spatial capture--recapture. *Journal of Wildlife Management* **80**, 1390--1407.
 
 Pebesma, E., Cornford, D., Dubois, G., Heuvelink, G.B.M., Hristopoulos, D., Pilz, J., Stoehlker, U., Morin, G. and Skoien, J.O. (2010) INTAMAP: the design and implementation of an interoperable automated interpolation web service. 
 *Computers & Geosciences* **37**, 343--352.
@@ -305,19 +314,18 @@ load(file = paste0(simfolder, 'simrandom100.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN100.2.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
 # select only first 4 scenarios for plotting
-sumplot(list(Uniform = simrandom100.2[1:4], BVN = simrandomBVN100.2[1:4]), legend = TRUE)
+simplot(list(Uniform = simrandom100.2[1:4], BVN = simrandomBVN100.2[1:4]), legend = TRUE)
 # tabulate all
-sumplot(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), compact = NULL, 
-    plt = FALSE, dec = 4)
+simsum(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), compact = NULL, dec = 4)
 ```
 
 
 ```{r sumplot1a}
 # compact table for paper
-sumplot(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), plt = FALSE)
+simsum(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2))
 # spatial scale parameter
-output <- sumplot(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), plt = FALSE,
-        compact= c('av.sighat', 'se.sighat'))
+output <- simsum(list(Uniform = simrandom100.2, BVN = simrandomBVN100.2), 
+    component = 'pred', parm = 'sigma', compact = c("av.parmhat", "sd.parmhat"))
 lapply(output, '/', 50)  # in units of detector spacing
 ```
 
@@ -393,23 +401,22 @@ load(file = paste0(simfolder, 'simgridalignlin2.3.RData'))
 load(file = paste0(simfolder, 'simgridalignlin3.3.RData'))
 load(file = paste0(simfolder, 'simgridalignlin4.3.RData'))
 
-sumplot(list(Parallel = simgridalignlin1.3[1:4],
+simplot(list(Parallel = simgridalignlin1.3[1:4],
              Oblique = simgridalignlin2.3[1:4],
              Perpendicular = simgridalignlin3.3[1:4], 
              Random = simgridalignlin4.3[1:4]), 
         legend = TRUE, ylim = c(-1,3.5))
         
-sumplot(list(Parallel      = simgridalignlin1.3, 
+simsum(list(Parallel      = simgridalignlin1.3, 
              Oblique       = simgridalignlin2.3, 
              Perpendicular = simgridalignlin3.3, 
-             Random        = simgridalignlin4.3), 
-        plt = FALSE)
+             Random        = simgridalignlin4.3))
 ```
 
 ## Hollow grid (linear, two directions)
 
 ```{r simhollow, eval = runsim}
-tr <- make.grid(10, 10, spacex = 25, spacey = 25, detector = 'proximity', hollow = TRUE)
+tr <- make.grid(10, 10, spacing = 25, detector = 'proximity', hollow = TRUE)
 simgridalignsq1.2 <- vector('list', 6)
 names(simgridalignsq1.2) <- c(1:4, '1-4','1,4')
 simgridalignsq3.2 <- simgridalignsq2.2 <- simgridalignsq1.2
@@ -466,14 +473,63 @@ save(simgridalignsq3.2, file = paste0(simfolder, 'simgridalignsq3.2.RData'))
 load(file = paste0(simfolder, 'simgridalignsq1.2.RData'))
 load(file = paste0(simfolder, 'simgridalignsq2.2.RData'))
 load(file = paste0(simfolder, 'simgridalignsq3.2.RData'))
-sumplot(list(Parallel = simgridalignsq1.2[1:4],
+simplot(list(Parallel = simgridalignsq1.2[1:4],
              Oblique = simgridalignsq2.2[1:4], 
              Random = simgridalignsq3.2[1:4]),
-        plt = TRUE, ylim = c(-0.4,0.4), legend = TRUE)
-sumplot(list(Parallel = simgridalignsq1.2,
+        ylim = c(-0.4,0.4), legend = TRUE)
+simsum(list(Parallel = simgridalignsq1.2,
              Oblique = simgridalignsq2.2, 
-             Random = simgridalignsq3.2),
-        plt = FALSE)
+             Random = simgridalignsq3.2))
+```
+
+
+## Hollow grid re-check with 50-m spacing
+
+```{r simhollow, eval = runsim}
+tr <- make.grid(10, 10, spacing = 50, detector = 'proximity', hollow = TRUE)
+simgridalignsqw1.1 <- vector('list', 4)  # 'w' for wide
+names(simgridalignsqw1.1) <- 1:4
+simgridalignsqw3.1 <- simgridalignsqw2.1 <- simgridalignsqw1.1
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    details <- list(distribution = 'binomial')
+    # bvn parallel to traps
+    simgridalignsqw1.1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn oblique to traps
+    simgridalignsqw2.1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/4, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn random orientation
+    simgridalignsqw3.1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+}
+save(simgridalignsqw1.1, file = paste0(simfolder, 'simgridalignsqw1.1.RData'))
+save(simgridalignsqw2.1, file = paste0(simfolder, 'simgridalignsqw2.1.RData'))
+save(simgridalignsqw3.1, file = paste0(simfolder, 'simgridalignsqw3.1.RData'))
+```
+
+Compare with 25-m spacing.
+
+```{r widehollow}
+load(file = paste0(simfolder, 'simgridalignsq1.2.RData'))
+load(file = paste0(simfolder, 'simgridalignsq2.2.RData'))
+load(file = paste0(simfolder, 'simgridalignsq3.2.RData'))
+load(file = paste0(simfolder, 'simgridalignsqw1.1.RData'))
+load(file = paste0(simfolder, 'simgridalignsqw2.1.RData'))
+load(file = paste0(simfolder, 'simgridalignsqw3.1.RData'))
+
+par(mfrow=c(1,2))
+simplot(list(Parallel = simgridalignsq1.2[1:4],
+             Oblique = simgridalignsq2.2[1:4], 
+             Random = simgridalignsq3.2[1:4]),
+        ylim = c(-0.4,0.4), legend = TRUE)
+simplot(list(Parallel = simgridalignsqw1.1,
+             Oblique = simgridalignsqw2.2, 
+             Random = simgridalignsqw3.2),
+        ylim = c(-0.4,0.4), legend = TRUE)
 ```
 
 ## Low density 10 x 10 grid
@@ -501,10 +557,10 @@ save(simrandomBVN100low.2, file = paste0(simfolder, 'simrandomBVN100low.2.RData'
 load(file = paste0(simfolder, 'simrandom100low.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN100low.2.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-sumplot(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
+simplot(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
     trueD = 0.5, legend = TRUE)
-sumplot(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
-    trueD = 0.5, plt = FALSE, compact = NULL)
+simsum(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
+    trueD = 0.5, compact = NULL)
 ```
 
 ## Small array 6 x 6 grid
@@ -547,8 +603,8 @@ save(simrandomBVN36.2, file = paste0(simfolder, 'simrandomBVN36.2.RData'))
 ```{r sumplotsmall}
 load(file = paste0(simfolder, 'simrandom36.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN36.2.RData'))
-sumplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]), legend = TRUE)
-sumplot(list(Uniform = simrandom36.2, BVN = simrandomBVN36.2), plt = FALSE)
+simplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]), legend = TRUE)
+simsum(list(Uniform = simrandom36.2, BVN = simrandomBVN36.2))
 ```
 
 ## Common random orientation
@@ -574,7 +630,7 @@ save(simrandomBVN100C.2, file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
 ```{r sumplotcommon}
 load(file = paste0(simfolder, 'simrandom100C.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
-sumplot(list(Uniform = simrandom100C.2, BVN = simrandomBVN100C.2), legend = TRUE)
+simplot(list(Uniform = simrandom100C.2, BVN = simrandomBVN100C.2), legend = TRUE)
 ```
 
 [secrdesign]: https://CRAN.R-project.org/package=secrdesign/vignettes/secrdesign-vignette.pdf

@@ -27,7 +27,8 @@ License: \tab GNU General Public License Version 2 or later\cr
 \code{\link{simcapt.bvn}} \tab \cr
 \code{\link{simpopn.bvn}} \tab \cr
 \code{\link{runEllipseSim}} \tab \cr
-\code{\link{sumplot}} \tab \cr
+\code{\link{simsum}} \tab \cr
+\code{\link{simplot}} \tab \cr
 }
 
 }

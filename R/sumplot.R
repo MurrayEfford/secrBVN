@@ -1,9 +1,5 @@
-sumplot <- function (simlist, parm = "D", trueval = 4, plt = TRUE, 
-                     xval = 1:4, xlim = c(0.7,4.3), ylim = c(-0.2,0.2),
-                     legend = TRUE, pchi = c(21, 16, 22, 23),
-                     component = c("fit", "pred"),
-                     compact = c('av.nCH', 'RB', 'RSE', 'COV'),
-                     dec = 3) {
+simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4,
+                     compact = c('av.nCH', 'RB', 'RSE', 'COV'), dec = 3) {
     sumD <- function(x) {
         Dval <- sapply(lapply(x, '[[', component), '[[', parm, 'estimate')
         DSE  <- sapply(lapply(x, '[[', component), '[[', parm, 'SE.estimate')
@@ -34,25 +30,6 @@ sumplot <- function (simlist, parm = "D", trueval = 4, plt = TRUE,
     }
     component <- match.arg(component)
     outlist <- lapply(simlist, tidy)
-    if (plt) {
-        plotone <- function (out, i) {
-            segments(xval+offset[i], out['RB',]-2*out['seRB',],
-                     xval+offset[i], out['RB',]+2*out['seRB',])
-            points(xval+offset[i], out['RB',], pch = pchi[i], bg = 'white', cex = 1.2)
-        }
-        nscen <- length(simlist)
-        offset <- seq(-(nscen-1)*0.025, (nscen-1)*0.025, 0.05)
-        plot(0,0, xlim=xlim, ylim = ylim, xlab = 'Aspect ratio',
-             ylab = 'Relative bias',axes = FALSE, type = 'n')
-        mapply(plotone, outlist, 1:length(outlist))
-        axis(1, at = 1:4)
-        axis(2, las = 1)
-        abline(h=0, lty=2)
-        if (legend)
-            legend ((par()$usr[2] - par()$usr[1]) * 0.1 + par()$usr[1],  
-                    par()$usr[4]*0.95, legend = names(simlist),
-                    pch = pchi, cex = 0.9, pt.cex = 1.2, adj = 0)
-    }
     if (is.null(compact)) {
         out <- lapply(outlist,round, dec)
     }
@@ -62,5 +39,31 @@ sumplot <- function (simlist, parm = "D", trueval = 4, plt = TRUE,
         }
         out <- lapply(outlist, comp)
     }
-    if (plt) invisible(out) else out
+    out
+}
+
+simplot <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4, 
+                     xval = 1:4, xlim = c(0.7,4.3), ylim = c(-0.2,0.2),
+                     legend = TRUE, pchi = c(21, 16, 22, 23)) {
+    plotone <- function (out, i) {
+        segments(xval+offset[i], out['RB',]-2*out['seRB',],
+                 xval+offset[i], out['RB',]+2*out['seRB',])
+        points(xval+offset[i], out['RB',], pch = pchi[i], bg = 'white', cex = 1.2)
+    }
+    component <- match.arg(component)
+    outlist <- simsum(simlist, component = component, parm = parm, 
+                      trueval = trueval, compact = NULL)
+    nscen <- length(simlist)
+    offset <- seq(-(nscen-1)*0.025, (nscen-1)*0.025, 0.05)
+    plot(0,0, xlim=xlim, ylim = ylim, xlab = 'Aspect ratio',
+         ylab = 'Relative bias',axes = FALSE, type = 'n')
+    mapply(plotone, outlist, 1:length(outlist))
+    axis(1, at = 1:4)
+    axis(2, las = 1)
+    abline(h=0, lty=2)
+    if (legend)
+        legend ((par()$usr[2] - par()$usr[1]) * 0.1 + par()$usr[1],  
+                par()$usr[4]*0.95, legend = names(simlist),
+                pch = pchi, cex = 0.9, pt.cex = 1.2, adj = 0)
+    invisible(outlist)
 }
