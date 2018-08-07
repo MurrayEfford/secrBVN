@@ -17,8 +17,8 @@
 \tabular{ll}{
 Package: \tab secrBVN\cr
 Type: \tab Package\cr
-Version: \tab 1.2.2\cr
-Date: \tab 2018-08-03\cr
+Version: \tab 1.2.3\cr
+Date: \tab 2018-08-07\cr
 License: \tab GNU General Public License Version 2 or later\cr
 }
 
