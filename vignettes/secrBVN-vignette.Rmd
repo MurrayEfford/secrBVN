@@ -152,13 +152,13 @@ sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2,
 
 # Anisotropic home ranges as a solution
 
-In principle, we can deal with uniformly oriented and elongated ranges by replacing Euclidean distances with distances in a transformed space (Murphy et al. 2016). A simple transformation uses two parameters: $\psi_A$ for the orientation and $\psi_R$ for the degree of inflation or contraction. Thanks to Ben Augustine for pointing out the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018).
+In principle, we can deal with elongated ranges by replacing Euclidean distances with distances in a space transformed to render home ranges circular (Murphy et al. 2016). A simple transformation uses two parameters: $\psi_A$ for the orientation and $\psi_R$ for the degree of inflation or contraction. Thanks to Ben Augustine for pointing out the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018).
 
-The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested below on a hollow square array. In this version both transformation parameters are estimated (cf Murphy et al. 2016). This is the only place in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
+The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested in the [Appendix](#appendix) on data from a hollow square array. In this version both transformation parameters are estimated (cf Murphy et al. 2016). This is the only place in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
 
 The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. Transformation parameters are handled in the undocumented 'miscparm' feature of 'secr'. This allows supernumerary unmodelled parameters to be included in the vector of coefficients (beta parameters) passed to the distance function and over which the likelihood is maximised. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places.
 
-```{r anisotropic, eval = runall, echo = TRUE}
+```{r anisotropic, eval = TRUE, echo = TRUE}
 anisodistfn <- function (xy1, xy2, mask) {
     if (missing(xy1)) return(character(0))
     xy1 <- as.matrix(xy1)
@@ -170,48 +170,6 @@ anisodistfn <- function (xy1, xy2, mask) {
     aniso.xy2 <- geoR::coords.aniso(xy2, aniso.pars = c(psiA, psiR))
     secr::edist(aniso.xy1, aniso.xy2) # nrow(xy1) x nrow(xy2) matrix
 }
-nrepl <- 500
-ncores <- 20
-library(geoR)
-tr <- make.grid(10, 10, spacex = 25, spacey = 25, detector = 'proximity', hollow = TRUE)
-simaniso1 <- vector('list', 4); names(simaniso1) <- 1:4
-simaniso4 <- simaniso3 <- simaniso2 <- simaniso1
-for (i in 1:4) {
-    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    # parameters psiA and psiR are passed to anisodistfn in mask attribute
-    details <- list(distribution = 'binomial', userdist = anisodistfn, 
-             miscparm = c(psiA = 0.5, psiR = 1.5))  # miscparm initial values
-    # bvn parallel to traps
-    simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
-        ncores = ncores,  traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        details = details, detectfn = 'HHN', extractfn = coef, theta = 0) 
-    # bvn oblique to traps
-    simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
-        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        details = details, detectfn = 'HHN', extractfn = coef, theta = pi/4) 
-    # bvn random orientation
-    simaniso3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
-        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        details = details, detectfn = 'HHN', extractfn = coef, theta = NULL) 
-    # bvn common random orientation
-    simaniso4[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
-        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        details = details, detectfn = 'HHN', extractfn = coef, theta = -1) 
-}
-save(simaniso1, file = paste0(simfolder, 'simaniso1.RData'))
-save(simaniso2, file = paste0(simfolder, 'simaniso2.RData'))
-save(simaniso3, file = paste0(simfolder, 'simaniso3.RData'))
-save(simaniso4, file = paste0(simfolder, 'simaniso4.RData'))
-```
-
-```{r sumplotaniso, echo = TRUE, eval = FALSE}
-load(file = paste0(simfolder, 'simaniso1.RData'))
-load(file = paste0(simfolder, 'simaniso2.RData'))
-load(file = paste0(simfolder, 'simaniso3.RData'))
-simplot(list(Parallel = simaniso1, 
-             Oblique = simaniso2,
-             Random = simaniso3),
-             component = "pred")
 ```
 
 The package **intamap** (Pebesma et al. 2010) also offers anisotropic transformation in function `rotateAnisotropicData`.
@@ -309,7 +267,7 @@ save(simrandom100.2, file = paste0(simfolder, 'simrandom100.2.RData'))
 save(simrandomBVN100.2, file = paste0(simfolder, 'simrandomBVN100.2.RData'))
 ```
 
-```{r sumplot1}
+```{r sumplot1, fig.width = 5, fig.height = 4}
 load(file = paste0(simfolder, 'simrandom100.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN100.2.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
@@ -332,7 +290,7 @@ lapply(output, '/', 50)  # in units of detector spacing
 ## Main simulations 36-detector linear array 
 
 ```{r sim2, eval = runsim}
-tr <- make.grid(36, 1, spacex = 25, spacey = 25, detector = 'proximity')
+tr <- make.grid(36, 1, spacing = 25, detector = 'proximity')
 simgridalignlin1.3 <- vector('list', 6)
 names(simgridalignlin1.3) <- c(1:4,'1-4','1,4')
 simgridalignlin4.3 <- simgridalignlin3.3 <- simgridalignlin2.3 <- simgridalignlin1.3 
@@ -395,7 +353,7 @@ save(simgridalignlin3.3, file = paste0(simfolder, 'simgridalignlin3.3.RData'))
 save(simgridalignlin4.3, file = paste0(simfolder, 'simgridalignlin4.3.RData'))
 ```
 
-```{r sumplot2}
+```{r sumplot2, fig.width = 5, fig.height = 4}
 load(file = paste0(simfolder, 'simgridalignlin1.3.RData'))
 load(file = paste0(simfolder, 'simgridalignlin2.3.RData'))
 load(file = paste0(simfolder, 'simgridalignlin3.3.RData'))
@@ -469,7 +427,7 @@ save(simgridalignsq2.2, file = paste0(simfolder, 'simgridalignsq2.2.RData'))
 save(simgridalignsq3.2, file = paste0(simfolder, 'simgridalignsq3.2.RData'))
 ```
 
-```{r sumplothollow}
+```{r sumplothollow, fig.width = 5, fig.height = 4}
 load(file = paste0(simfolder, 'simgridalignsq1.2.RData'))
 load(file = paste0(simfolder, 'simgridalignsq2.2.RData'))
 load(file = paste0(simfolder, 'simgridalignsq3.2.RData'))
@@ -482,10 +440,98 @@ simsum(list(Parallel = simgridalignsq1.2,
              Random = simgridalignsq3.2))
 ```
 
+## Linear re-check with 50-m spacing
+
+```{r sim2, eval = runsim}
+tr <- make.grid(36, 1, spacing = 50, detector = 'proximity')
+simgridalignlinw1.1 <- vector('list', 6)
+names(simgridalignlinw1.1) <- c(1:4,'1-4','1,4')
+simgridalignlinw4.1 <- simgridalignlinw3.1 <- simgridalignlinw2.1 <- simgridalignlinw1.1 
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    
+    # bvn parallel to traps
+    simgridalignlinw1.1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn oblique to traps
+    simgridalignlinw2.1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/4, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn perpendicular to traps
+    simgridalignlinw3.1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/2, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+    # bvn random orientation
+    simgridalignlinw4.1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+        CL = TRUE, detectfn = 'HHN', details = details)
+}
+
+# bvn parallel to traps
+simgridalignlinw1.1[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn oblique to traps
+simgridalignlinw2.1[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/4, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn perpendicular to traps
+simgridalignlinw3.1[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/2, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn random orientation
+simgridalignlinw4.1[[5]] <- runEllipseSim (nrepl, sigmaX = rs2xy, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+simgridalignlinw1.1[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = 0, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn oblique to traps
+simgridalignlinw2.1[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/4, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn perpendicular to traps
+simgridalignlinw3.1[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = pi/2, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+# bvn random orientation
+simgridalignlinw4.1[[6]] <- runEllipseSim (nrepl, sigmaX = rs2xy2, buffer = 200, 
+    ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', theta = NULL, 
+    CL = TRUE, detectfn = 'HHN', details = details)
+
+save(simgridalignlinw1.1, file = paste0(simfolder, 'simgridalignlinw1.1.RData'))
+save(simgridalignlinw2.1, file = paste0(simfolder, 'simgridalignlinw2.1.RData'))
+save(simgridalignlinw3.1, file = paste0(simfolder, 'simgridalignlinw3.1.RData'))
+save(simgridalignlinw4.1, file = paste0(simfolder, 'simgridalignlinw4.1.RData'))
+```
+
+```{r}
+load(file = paste0(simfolder, 'simgridalignlin1.3.RData'))
+load(file = paste0(simfolder, 'simgridalignlin2.3.RData'))
+load(file = paste0(simfolder, 'simgridalignlin3.3.RData'))
+load(file = paste0(simfolder, 'simgridalignlin4.3.RData'))
+load(file = paste0(simfolder, 'simgridalignlinw1.1.RData'))
+load(file = paste0(simfolder, 'simgridalignlinw2.1.RData'))
+load(file = paste0(simfolder, 'simgridalignlinw3.1.RData'))
+load(file = paste0(simfolder, 'simgridalignlinw4.1.RData'))
+par(mfrow=c(1,2))
+simplot(list(Parallel      = simgridalignlin1.3[1:4],
+             Oblique       = simgridalignlin2.3[1:4],
+             Perpendicular = simgridalignlin3.3[1:4], 
+             Random        = simgridalignlin4.3[1:4]), 
+        legend = FALSE, ylim = c(-1,3.5))
+simplot(list(Parallel      = simgridalignlinw1.1[1:4],
+             Oblique       = simgridalignlinw2.1[1:4],
+             Perpendicular = simgridalignlinw3.1[1:4], 
+             Random        = simgridalignlinw4.1[1:4]), 
+        legend = TRUE, ylim = c(-1,3.5))
+```
 
 ## Hollow grid re-check with 50-m spacing
 
-```{r simhollow, eval = runsim}
+```{r simholloww, eval = runsim}
 tr <- make.grid(10, 10, spacing = 50, detector = 'proximity', hollow = TRUE)
 simgridalignsqw1.1 <- vector('list', 4)  # 'w' for wide
 names(simgridalignsqw1.1) <- 1:4
@@ -513,7 +559,7 @@ save(simgridalignsqw3.1, file = paste0(simfolder, 'simgridalignsqw3.1.RData'))
 
 Compare with 25-m spacing.
 
-```{r widehollow}
+```{r widehollow, eval = FALSE, fig.width = 8, fig.height = 4}
 load(file = paste0(simfolder, 'simgridalignsq1.2.RData'))
 load(file = paste0(simfolder, 'simgridalignsq2.2.RData'))
 load(file = paste0(simfolder, 'simgridalignsq3.2.RData'))
@@ -525,11 +571,11 @@ par(mfrow=c(1,2))
 simplot(list(Parallel = simgridalignsq1.2[1:4],
              Oblique = simgridalignsq2.2[1:4], 
              Random = simgridalignsq3.2[1:4]),
-        ylim = c(-0.4,0.4), legend = TRUE)
+        ylim = c(-0.5,0.7), legend = TRUE)
 simplot(list(Parallel = simgridalignsqw1.1,
-             Oblique = simgridalignsqw2.2, 
-             Random = simgridalignsqw3.2),
-        ylim = c(-0.4,0.4), legend = TRUE)
+             Oblique = simgridalignsqw2.1, 
+             Random = simgridalignsqw3.1),
+        ylim = c(-0.5,0.7), legend = TRUE)
 ```
 
 ## Low density 10 x 10 grid
@@ -553,14 +599,14 @@ save(simrandom100low.2, file = paste0(simfolder, 'simrandom100low.2.RData'))
 save(simrandomBVN100low.2, file = paste0(simfolder, 'simrandomBVN100low.2.RData'))
 ```
 
-```{r sumplotlow}
+```{r sumplotlow, fig.width = 5, fig.height = 4}
 load(file = paste0(simfolder, 'simrandom100low.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN100low.2.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
 simplot(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
-    trueD = 0.5, legend = TRUE)
+    trueval = 0.5, legend = TRUE)
 simsum(list(Uniform = simrandom100low.2, BVN = simrandomBVN100low.2), 
-    trueD = 0.5, compact = NULL)
+    trueval = 0.5, compact = NULL)
 ```
 
 ## Small array 6 x 6 grid
@@ -600,7 +646,7 @@ save(simrandom36.2, file = paste0(simfolder, 'simrandom36.2.RData'))
 save(simrandomBVN36.2, file = paste0(simfolder, 'simrandomBVN36.2.RData'))
 ```
 
-```{r sumplotsmall}
+```{r sumplotsmall, fig.width = 5, fig.height = 4}
 load(file = paste0(simfolder, 'simrandom36.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN36.2.RData'))
 simplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]), legend = TRUE)
@@ -627,10 +673,76 @@ save(simrandom100C.2, file = paste0(simfolder, 'simrandom100C.2.RData'))
 save(simrandomBVN100C.2, file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
 ```
 
-```{r sumplotcommon}
+```{r sumplotcommon, fig.width = 5, fig.height = 4}
 load(file = paste0(simfolder, 'simrandom100C.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN100C.2.RData'))
 simplot(list(Uniform = simrandom100C.2, BVN = simrandomBVN100C.2), legend = TRUE)
+```
+
+## Anisotropic model for data from hollow square array
+
+```{r aniso, eval = runsim}
+anisodistfn <- function (xy1, xy2, mask) {
+    if (missing(xy1)) return(character(0))
+    xy1 <- as.matrix(xy1)
+    xy2 <- as.matrix(xy2)
+    miscparm <- attr(mask, 'miscparm')
+    psiA <- miscparm[1]           # anisotropy angle; identity link
+    psiR <- 1 + exp(miscparm[2])  # anisotropy ratio; log link
+    aniso.xy1 <- geoR::coords.aniso(xy1, aniso.pars = c(psiA, psiR))
+    aniso.xy2 <- geoR::coords.aniso(xy2, aniso.pars = c(psiA, psiR))
+    secr::edist(aniso.xy1, aniso.xy2) # nrow(xy1) x nrow(xy2) matrix
+}
+nrepl <- 500
+ncores <- 20
+library(geoR)
+tr <- make.grid(10, 10, spacing = 25, detector = 'proximity', hollow = TRUE)
+simaniso1 <- vector('list', 4); names(simaniso1) <- 1:4
+simaniso4 <- simaniso3 <- simaniso2 <- simaniso1
+for (i in 1:4) {
+    sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
+    # parameters psiA and psiR are passed to anisodistfn in mask attribute
+    details <- list(distribution = 'binomial', userdist = anisodistfn, 
+             miscparm = c(psiA = 0.5, psiR = 1.5))  # miscparm initial values
+    # bvn parallel to traps
+    simaniso1[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores,  traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        details = details, detectfn = 'HHN', extractfn = coef, theta = 0) 
+    # bvn oblique to traps
+    simaniso2[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        details = details, detectfn = 'HHN', extractfn = coef, theta = pi/4) 
+    # bvn random orientation
+    simaniso3[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        details = details, detectfn = 'HHN', extractfn = coef, theta = NULL) 
+    # bvn common random orientation
+    simaniso4[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
+        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        details = details, detectfn = 'HHN', extractfn = coef, theta = -1) 
+}
+save(simaniso1, file = paste0(simfolder, 'simaniso1.RData'))
+save(simaniso2, file = paste0(simfolder, 'simaniso2.RData'))
+save(simaniso3, file = paste0(simfolder, 'simaniso3.RData'))
+save(simaniso4, file = paste0(simfolder, 'simaniso4.RData'))
+```
+
+```{r sumplotaniso, echo = TRUE, eval = TRUE, fig.width = 8, fig.height = 4}
+load(file = paste0(simfolder, 'simaniso1.RData'))
+load(file = paste0(simfolder, 'simaniso2.RData'))
+load(file = paste0(simfolder, 'simaniso3.RData'))
+load(file = paste0(simfolder, 'simaniso4.RData'))
+par(mfrow = c(1,2))
+simplot(list(Parallel = simgridalignsq1.2[1:4],
+             Oblique = simgridalignsq2.2[1:4],
+             Random = simgridalignsq3.2[1:4]),
+        ylim = c(-0.4,0.45), legend = TRUE)
+text(-0.4, 0.5, 'a.', cex = 1.45, xpd = TRUE)
+simplot(list(Parallel = simaniso1, 
+             Oblique = simaniso2,
+             Random = simaniso3),
+        component = "pred", ylim = c(-0.4,0.45), legend = TRUE)
+text(-0.4, 0.5, 'b.', cex = 1.45, xpd = TRUE)
 ```
 
 [secrdesign]: https://CRAN.R-project.org/package=secrdesign/vignettes/secrdesign-vignette.pdf
