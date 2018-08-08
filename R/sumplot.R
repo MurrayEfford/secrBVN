@@ -64,6 +64,6 @@ simplot <- function (simlist, component = c("fit", "pred"), parm = "D", trueval 
     if (legend)
         legend ((par()$usr[2] - par()$usr[1]) * 0.1 + par()$usr[1],  
                 par()$usr[4]*0.95, legend = names(simlist),
-                pch = pchi, cex = 0.9, pt.cex = 1.2, adj = 0)
+                pch = pchi, cex = par()$cex * 0.8, pt.cex = 1.2, adj = 0)
     invisible(outlist)
 }
