@@ -18,7 +18,7 @@ runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, t
         out <- list(npop = nrow(pop), nCH = nrow(CH), ncapt=sum(CH), fit = nullfit)
         if (SECR) {
             fit <- try(secr.fit(CH, mask = mask, trace = FALSE, ...))
-            if (inherits(fit, 'try-error')) {
+            if (!inherits(fit, "secr")) {
                 out$fit <- nullfit
                 out$pred <- nullpred
             }
