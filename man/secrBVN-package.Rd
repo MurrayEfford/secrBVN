@@ -18,7 +18,7 @@
 Package: \tab secrBVN\cr
 Type: \tab Package\cr
 Version: \tab 1.2.3\cr
-Date: \tab 2018-08-07\cr
+Date: \tab 2018-08-14\cr
 License: \tab GNU General Public License Version 2 or later\cr
 }
 
