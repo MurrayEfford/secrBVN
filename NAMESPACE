@@ -1,6 +1,7 @@
 import (secr)
-importFrom ("graphics", "par", "plot", "points", "polygon")
-importFrom ("stats", "runif", "predict")
+importFrom ("graphics", "par", "plot", "points", "polygon", "abline", "axis", "segments")
+importFrom ("stats", "runif", "predict", "median", "sd")
+
 importFrom ("utils", "flush.console")
 importFrom ("mvtnorm", "dmvnorm")
 importFrom ("parallel", "parLapply", "makeCluster", "clusterSetRNGStream", 

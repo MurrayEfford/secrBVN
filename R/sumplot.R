@@ -1,5 +1,5 @@
-simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4,
-                     compact = c('av.nCH', 'RB', 'RSE', 'COV'), dec = 3) {
+simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4, 
+                    compact = c('av.nCH', 'RB', 'RSE', 'COV'), dec = 3) {
     sumD <- function(x) {
         Dval <- sapply(lapply(x, '[[', component), '[[', parm, 'estimate')
         DSE  <- sapply(lapply(x, '[[', component), '[[', parm, 'SE.estimate')
@@ -44,11 +44,11 @@ simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval =
 
 simplot <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4, 
                      xval = 1:4, xlim = c(0.7,4.3), ylim = c(-0.2,0.2),
-                     legend = TRUE, pchi = c(21, 16, 22, 23)) {
+                     legend = TRUE, pchi = c(21, 16, 22, 24), cexi = rep(1.2,4)) {
     plotone <- function (out, i) {
         segments(xval+offset[i], out['RB',]-2*out['seRB',],
                  xval+offset[i], out['RB',]+2*out['seRB',])
-        points(xval+offset[i], out['RB',], pch = pchi[i], bg = 'white', cex = 1.2)
+        points(xval+offset[i], out['RB',], pch = pchi[i], bg = 'white', cex = cexi[i])
     }
     component <- match.arg(component)
     outlist <- simsum(simlist, component = component, parm = parm, 
@@ -64,6 +64,6 @@ simplot <- function (simlist, component = c("fit", "pred"), parm = "D", trueval 
     if (legend)
         legend ((par()$usr[2] - par()$usr[1]) * 0.1 + par()$usr[1],  
                 par()$usr[4]*0.95, legend = names(simlist),
-                pch = pchi, cex = par()$cex * 0.8, pt.cex = 1.2, adj = 0)
+                pch = pchi, cex = par()$cex * 0.8, pt.cex = cexi, adj = 0)
     invisible(outlist)
 }

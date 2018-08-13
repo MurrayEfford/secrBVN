@@ -17,7 +17,7 @@ simsum(simlist, component = c("fit","pred"), parm = "D", trueval = 4,
     
 simplot(simlist, component = c("fit","pred"), parm = "D", trueval = 4, 
     xval = 1:4, xlim = c(0.7, 4.3), ylim = c(-0.2, 0.2),
-    legend = TRUE, pchi = c(21, 16, 22, 23))
+    legend = TRUE, pchi = c(21, 16, 22, 24), cexi = rep(1.2,4)) 
 
 }
 
@@ -35,6 +35,7 @@ simplot(simlist, component = c("fit","pred"), parm = "D", trueval = 4,
   \item{ylim}{numeric limits of y-axis}
   \item{legend}{logical; if TRUE a legend is displayed}
   \item{pchi}{numeric vector for symbol to use for each component of \code{simlist}}
+  \item{cexi}{numeric vector for symbol size to use for each component of \code{simlist}}
 
 }
 
