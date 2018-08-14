@@ -7,4 +7,4 @@ The package may be installed from R by running:
 
 install.packages("devtools")
 
-devtools::install_github("MurrayEfford/secrBVN")
+devtools::install_github("MurrayEfford/secrBVN", build_vignettes = TRUE)
