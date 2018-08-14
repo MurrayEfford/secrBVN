@@ -13,7 +13,7 @@ A list of outputs from \code{\link{runEllipseSim}} is summarised and optionally 
 \usage{
 
 simsum(simlist, component = c("fit","pred"), parm = "D", trueval = 4, 
-    compact = c("av.nCH", "RB", "RSE", "COV"), dec = 3)
+    compact = c("av.nCH", "RB", "RSE", "rRMSE", "COV"), dec = 3)
     
 simplot(simlist, component = c("fit","pred"), parm = "D", trueval = 4, 
     xval = 1:4, xlim = c(0.7, 4.3), ylim = c(-0.2, 0.2),

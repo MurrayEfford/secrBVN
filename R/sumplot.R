@@ -1,5 +1,5 @@
 simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4, 
-                    compact = c('av.nCH', 'RB', 'RSE', 'RMSE', 'COV'), dec = 3) {
+                    compact = c('av.nCH', 'RB', 'RSE', 'rRMSE', 'COV'), dec = 3) {
     sumD <- function(x) {
         Dval <- sapply(lapply(x, '[[', component), '[[', parm, 'estimate')
         DSE  <- sapply(lapply(x, '[[', component), '[[', parm, 'SE.estimate')
@@ -21,7 +21,7 @@ simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval =
           seRB = sd(Dval, na.rm = T)/trueval/n^0.5,
           RSE = mean(RSE, na.rm = T), 
           seRSE = sd(RSE, na.rm = T)/n^0.5,
-          RMSE = sqrt(mean((Dval-trueval)^2)),
+          rRMSE = sqrt(mean((Dval-trueval)^2)) / trueval,
           COV = mean(COV, na.rm = T))
     }
     tidy <- function (x) {
