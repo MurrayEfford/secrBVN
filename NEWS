@@ -5,6 +5,7 @@ New features or changed behaviour of old functions
     o   runEllipseSim() new argument outfile (name of cluster log)
     o   clarified arguments of runEllipseSim() and simcapt.bvn() wrt hazard and detectfn
     o   plotpopn.bvn() new argument region for truncation of plotted ellipses
+    o   anisotropic.fit()
     
 Other    
     o   GitHub repo murrayefford/secrBVN

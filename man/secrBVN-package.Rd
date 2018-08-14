@@ -29,6 +29,7 @@ License: \tab GNU General Public License Version 2 or later\cr
 \code{\link{runEllipseSim}} \tab \cr
 \code{\link{simsum}} \tab \cr
 \code{\link{simplot}} \tab \cr
+\code{\link{anisotropic.fit}} \tab \cr
 }
 
 }
