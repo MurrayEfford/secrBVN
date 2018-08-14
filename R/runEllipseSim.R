@@ -2,7 +2,7 @@
 runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, type = c('uniform', 'BVN'), 
                           g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, noccasions = 5, buffer = 100, 
                           D = 10, extractfn = derived, seed = NULL, ncores = 1, outfile = "cluster.log", 
-                          SECR = TRUE, Ndist = 'fixed', ...) {
+                          Ndist = 'fixed', secrfn = c('secr.fit', 'anisotropic.fit'), ...) {
     onereplicate <- function (r) {
 
         if (is.null(sigmaY) & !is.function(sigmaX)) {
@@ -16,8 +16,13 @@ runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, t
             CH <- simcapt.bvn(traps, pop, type, g0, lambda0, p, noccasions)
         }
         out <- list(npop = nrow(pop), nCH = nrow(CH), ncapt=sum(CH), fit = nullfit)
-        if (SECR) {
-            fit <- try(secr.fit(CH, mask = mask, trace = FALSE, ...))
+        
+        if (!is.null(secrfn)) {
+            args <- list(...)
+            args$capthist <- CH
+            args$mask <- mask
+            args$trace <- FALSE
+            fit <- try(do.call(secrfn, args))
             if (!inherits(fit, "secr")) {
                 out$fit <- nullfit
                 out$pred <- nullpred
@@ -31,7 +36,7 @@ runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, t
         flush.console()
         out
     }
-    
+    secrfn <- match.arg(secrfn)
     if (is.null(traps))
         traps <- make.grid(detector = 'proximity')
     mask <- make.mask(traps, buffer = buffer, type = 'trapbuffer')

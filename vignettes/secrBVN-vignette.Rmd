@@ -16,7 +16,7 @@ vignette: >
 
 This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses. Here we assume detection hazard is directly proportional to home range utilisation (activity). Code to use **secrBVN** for the simulations of Efford (in prep.) is provided in the [Appendix](#Appendix).
 
-The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`, `runEllipseSim` and `simsum` and `simplot`.
+The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`, `runEllipseSim`, `simsum`, `simplot` and `anisotropic.fit`.
 
 \vspace{12pt}
 
@@ -151,13 +151,15 @@ sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2,
                        SECR = TRUE) 
 ```
 
-# Anisotropic home ranges as a solution
+# Anisotropic home ranges: a partial solution
 
-In principle, we can deal with elongated ranges by replacing Euclidean distances with distances in a space transformed to render home ranges circular (Murphy et al. 2016). A simple transformation uses two parameters: $\psi_A$ for the orientation and $\psi_R$ for the degree of inflation or contraction. Thanks to Ben Augustine for pointing out the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018).
+In principle, we can deal with elongated ranges by replacing Euclidean distances with distances in a space transformed to render home ranges circular (Murphy et al. 2016). In effect home ranges are compressed along their major axis. The transformation uses two parameters: $\psi_A$ for the shared orientation measured in radians and $\psi_R$ for the degree of compression ($\psi_R \ge 1$; $\psi_R = 1$ corresponds to no compression). Thanks to Ben Augustine for pointing out the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018)[^footnote].
+
+[^footnote]:The package **intamap** (Pebesma et al. 2010) also offers anisotropic transformation in function `rotateAnisotropicData`.
 
 The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested in the [Appendix](#appendix) on data from a hollow square array. In this version both transformation parameters are estimated (cf Murphy et al. 2016). This is the only place in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
 
-The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. Transformation parameters are handled in the undocumented 'miscparm' feature of 'secr'. This allows supernumerary unmodelled parameters to be included in the vector of coefficients (beta parameters) passed to the distance function; the likelihood is maximised over a vector including these parameters and the conventional SECR parameters. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places. The link function is 'identity' for $\psi_A$ and 'log' for $\psi_R-1$.
+The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. Transformation parameters are handled in the undocumented 'miscparm' feature of 'secr'. This allows supernumerary unmodelled parameters to be passed to the distance function. The parameters are included in the vector of coefficients (beta parameters) over which the likelihood is maximised. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places. The link function is 'identity' for $\psi_A$ and 'log' for $\psi_R-1$.
 
 ```{r anisotropic}
 anisodistfn <- function (xy1, xy2, mask) {
@@ -189,24 +191,32 @@ plotpopn.bvn(pop, border='grey', add = TRUE)
 plot(tr, add = TRUE)
 ```
 
-```{r anisofit, cache = TRUE}
+First we fit a naive circular model.
+
+```{r anisofit0, cache = TRUE}
+fit0 <- secr.fit(CH, buffer = 200, detectfn = 'HHN', trace = FALSE,
+                details = list(distribution = 'binomial'))
+predict(fit0)
+```
+
+Next, the model with transformation to isotropy.
+```{r anisofit1, cache = TRUE}
 details <- list(distribution = 'binomial', userdist = anisodistfn, 
                 miscparm = c(psiA = 0.5, psiR = 1.5))  # initial values
 fit1 <- secr.fit(CH, buffer = 200, detectfn = 'HHN', trace = FALSE,
                 details = details)
+predict(fit1)
 coef(fit1)
 ```
 
 The estimated bearing is `r round(coef(fit1)['psiA','beta']*360/2/pi,2)` degrees. The estimated aspect ratio is `r round(1 + exp(coef(fit1)['psiR', 'beta']),2)`, (95% CI `r round(1 + exp(coef(fit1)['psiR', c('lcl','ucl')]), 2)`).
 
-The function `anisotropic.fit` streamlines model fitting and does not require `anisodistfn` to be defined externally. For example,
-```{r anisoexample2, cache = TRUE}
+The function `anisotropic.fit` streamlines model fitting and does not require `anisodistfn` to be defined externally. Use it as you would use `secr.fit`. For example,
+```{r anisofit2, cache = TRUE}
 fit2 <- anisotropic.fit(CH,  buffer = 200, detectfn = 'HHN', trace = FALSE, 
                 details = list(distribution = "binomial"))
-predictAniso(fit2)
+predictAniso(fit2) # estimates of transformation parameters
 ```
-
-The package **intamap** (Pebesma et al. 2010) also offers anisotropic transformation in function `rotateAnisotropicData`.
 
 # Package limitations
 
@@ -427,6 +437,22 @@ simsum(list(Aligned = simgridalignsqw1.1,
 
 ## Reduced spacing ($\sigma$ instead of $2\sigma$)
 
+### 10 x 10 grid
+
+```{r sims1, eval = runsim}
+tr <- make.grid(10,10, spacing = 25, detector = 'proximity')
+simrandomBVNs100.1 <- vector('list', 4)
+names(simrandomBVNs100.1) <- 1:4
+baseargs <- list(nrepl = nrepl, buffer = 200, ncores = ncores, traps = tr, theta = NULL,
+                 D = 4, CL = TRUE, detectfn = 'HHN', details = details, seed = 347,
+                 type = 'BVN', lambda = 0.4)
+for (i in 1:4) {
+    args <- c(baseargs, list(sigmaX = 25/i^0.5, sigmaY = 25*i^0.5))
+    simrandomBVNs100.1[[i]] <- do.call(runEllipseSim, args)
+}
+save(simrandomBVNs100.1, file = paste0(simfolder, 'simrandomBVNs100.1.RData'))
+```
+
 ### Straight line
 
 ```{r sim2, eval = runsim}
@@ -505,6 +531,20 @@ save(simgridalignsq3.2, file = paste0(simfolder, 'simgridalignsq3.2.RData'))
 ```
 
 ### Spacing comparisons
+
+#### 10 x 10 grid
+
+```{r comparegrid2550, fig.width = 8, fig.height = 4, eval = FALSE}
+load(file = paste0(simfolder, 'simrandomBVN100.3.RData'))
+load(file = paste0(simfolder, 'simrandomBVNs100.1.RData'))
+par(mfrow=c(1,2))
+simplot(list(BVN      = simrandomBVNs100.1), 
+        legend = TRUE, ylim = c(-1,3.5))
+mtext(side=3, text = '25 m')
+simplot(list(BVN = simrandomBVN100.3), 
+        legend = TRUE, ylim = c(-1,3.5))
+mtext(side=3, text = '50 m')
+```
 
 #### Straight line
 
@@ -645,32 +685,26 @@ simplot(list(Uniform = simrandom100C.2, BVN = simrandomBVN100C.2), legend = TRUE
 
 ## Anisotropic model for data from hollow square array
 
-Using function `anisodistfn` defined previously. Parameters `psiA` and `psiR` are silently passed to `anisodistfn` in the 'miscparm' mask attribute. Extract the fitted coefficients corresponding to `psiA` and `psiR` with the `coef` method for secr objects, and rely on direct estimation of density (CL = FALSE).
+Using function `anisotropic.fit`. Extract the fitted coefficients corresponding to `psiA` and `psiR` with the `coef` method for secr objects, and rely on direct estimation of density (CL = FALSE).
 
 ```{r aniso, eval = runsim}
-library(geoR)
 tr <- make.grid(10, 10, spacing = 25, detector = 'proximity', hollow = TRUE)
 simaniso1 <- vector('list', 4); names(simaniso1) <- 1:4
 simaniso4 <- simaniso3 <- simaniso2 <- simaniso1
-details <- list(distribution = 'binomial', userdist = anisodistfn, 
-                miscparm = c(psiA = 0.5, psiR = 1.5))  # miscparm initial values
 baseargs <- list(nrepl = nrepl, buffer = 200, ncores = ncores, traps = tr, 
                  lambda0 = 0.4, D = 4, type = 'BVN', CL = FALSE, detectfn = 'HHN', 
-                 details = details, extractfn = coef)
+                 details = list(distribution = 'binomial'), extractfn = coef,
+                 secrfn = 'anisotropic.fit')
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    args <- c(basearg, list(sigmaX = sigmaX, sigmaY = sigmaY))
-    # bvn parallel to traps
-    args$theta <- 0
+    args <- c(baseargs, list(sigmaX = sigmaX, sigmaY = sigmaY))
+    args$theta <- 0     # parallel to traps
     simaniso1[[i]] <- do.call(runEllipseSim, args)
-    # bvn oblique to traps
-    args$theta <- pi/4
+    args$theta <- pi/4  # oblique to traps
     simaniso2[[i]] <- do.call(runEllipseSim, args) 
-    # bvn random orientation
-    args$theta <- NULL
+    args$theta <- NULL  # random orientation
     simaniso3[[i]] <- do.call(runEllipseSim, args)
-    # bvn common random orientation
-    args$theta <- -1
+    args$theta <- -1    # common random orientation
     simaniso4[[i]] <- do.call(runEllipseSim, args)
 }
 save(simaniso1, file = paste0(simfolder, 'simaniso1.RData'))

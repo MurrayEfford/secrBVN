@@ -11,9 +11,10 @@ A wrapper for other bvn functions.
 \usage{
 
 runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
-    type = c('uniform','BVN'), g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, 
-    noccasions = 5, buffer =100, D = 10, extractfn = derived, seed = NULL, 
-    ncores = 1, outfile = "cluster.log", SECR = TRUE, Ndist = 'fixed', ...) 
+    type = c("uniform","BVN"), g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL,
+    noccasions = 5, buffer = 100, D = 10, extractfn = derived, seed = NULL, 
+    ncores = 1, outfile = "cluster.log",  Ndist = "fixed",
+    secrfn = c("secr.fit", "anisotropic.fit"), ...) 
 
 }
 
@@ -23,8 +24,8 @@ runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
   \item{sigmaY}{numeric}
   \item{theta}{real orientation of ellipses (radians)}
   \item{type}{uniform ellipse vs bivariate normal}
-  \item{g0}{numeric intercept of detection function (type = 'uniform')}
-  \item{lambda0}{numeric intercept of hazard function (type = 'BVN')}
+  \item{g0}{numeric intercept of detection function (type = "uniform")}
+  \item{lambda0}{numeric intercept of hazard function (type = "BVN")}
   \item{p}{numeric truncation probability for uniform elliptical home ranges}
   \item{traps}{secr traps object}
   \item{noccasions}{integer number of sampling occasions}
@@ -34,9 +35,9 @@ runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
   \item{seed}{integer random number seed}
   \item{ncores}{integer number of cores to use (ncores > 1 for parallel processing)}
   \item{outfile}{name of log file used if ncores > 1}
-  \item{SECR}{logical; if TRUE a model is fitted with secr.fit}
+  \item{secrfn}{character; name of function to call or NULL}
   \item{Ndist}{character string for distribution of number of individuals (see \code{\link{sim.popn}})}
-  \item{...}{other arguments passed to secr.fit}
+  \item{...}{other arguments passed to secrfn}
 }
 \details{
 
@@ -56,21 +57,27 @@ A list with one component for each replicate, comprising a list with components
 \item{npop}{number of individuals in simulated population}
 \item{nCH}{number of individuals detected}
 \item{ncapt}{number of detections}
+
+And, if \code{secrfn} not NULL,
+
 \item{fit}{result of extractfn applied to fitted secr model (default, a 2 x 4 matrix from derived}
 \item{pred}{result of predict applied to fitted secr model (default, a 2 x 5 data.frame)}
 
 }
 
 \seealso{
-  \code{\link{simpopn.bvn}}, \code{\link{simcapt.bvn}}, \code{\link{secr.fit}}
+  \code{\link{simpopn.bvn}}, 
+  \code{\link{simcapt.bvn}}, 
+  \code{\link{secr.fit}},
+  \code{\link{anisotropic.fit}}
 }
 
 \examples{
 \dontrun{
 nrepl <- 20
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
+tr <- make.grid(6,6, spacing = 50, detector = "proximity")
 sigmaX <- 25/2; sigmaY <- 25*2
-details <- list(distribution = 'binomial')
+details <- list(distribution = "binomial")
 sims <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 2, 
                        traps = tr, g0 = 0.2, D = 4, detectfngen = 4, CL = TRUE, 
                        details = details) 
