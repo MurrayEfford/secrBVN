@@ -22,15 +22,13 @@ The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`,
 
 # Generating and plotting elliptical home ranges
 
-`simpopn.bvn` is a wrapper for the **secr** function `sim.popn` that adds attributes specifying a bivariate normal home range shape, size and orientation for each individual. By default, shape and size are the same for all individuals, but the resulting popn object may be modified so they vary individually (see [Heterogeneous elliptical home ranges](#heterogeneity)).
+`simpopn.bvn` is a wrapper for the **secr** function `sim.popn` that adds attributes specifying a bivariate normal home range shape, size and orientation for each individual. By default, shape and size are the same for all individuals, but a mechanism is provided to vary them individually (see [Heterogeneous elliptical home ranges](#heterogeneity)).
 
 First, load the package.
-```{r startup}
+```{r startup, message = FALSE}
 library(secrBVN)
-vignettefolder <- "c:/density secr 3.1/secrBVN/vignettes/"
 simfolder <- "c:/density communication/noncircularity/paper/simulations/"
 runall <- FALSE  # skip lengthy simulations
-ncores <- 20     # for simulations
 ```
 
 ```{r ellipses, fig.width=8, fig.height=3}
@@ -58,80 +56,47 @@ Normally in **secr** we use `sim.capthist` to generate capture histories, but th
 
 The preceding paragraph describes the default behaviour of `simcapt.bvn`. If `type = uniform` is selected then a uniform (flat-topped) elliptical home range is simulated. The uniform probability of detection within the ellipse is controlled by `g0`, not `lambda0`.
 
-## Fitting a circular detection model to BVN data
+## Wrapper function to generate BVN data and fit SECR model 
 
-The function `runEllipseSim` is a wrapper for the preceding steps (`simpopn.bvn`, `simcapt.bvn`) that also fits a standard (circular) SECR model with `secr.fit`. The default population has fixed number of individuals within the rectangular buffered area around the detectors (`Ndist = 'fixed'`).
+The function `runEllipseSim` is a wrapper for the preceding steps (`simpopn.bvn`, `simcapt.bvn`) that also fits a standard (circular) SECR model with `secr.fit`[^footnote1]. The default population has a fixed number of individuals within the rectangular buffered area around the detectors (`Ndist = 'fixed'`).
 
-Here we use a $6 \times 6$ grid of binary proximity detectors with 50 metre spacing. The code in **secrBVN** does not allow for competition among detectors (secr detector type 'multi') or other other secr detector types. A density of 4/ha gives exactly 169 animals in the buffered area. The intercept parameter `g0` or `lambda0` is varied to reduce the effect of `type` on total number of captures and precision. Conditional likelihood is used for speed; the default `extractfn = derived` is compatible with both `CL = TRUE` and `CL = FALSE`. The 200-m buffer allows for the longest ranges ($\sigma_y = 50$ m).
+[^footnote1]: An elliptical SECR model may also be fitted - see [Anisotropic home ranges](#anisotropic).
+
+For this example we use a $6 \times 6$ grid of binary proximity detectors with 50 metre spacing. The code in **secrBVN** does not allow for competition among detectors (secr detector type 'multi') or other other secr detector types. A density of 4/ha gives exactly 169 animals in the buffered area.  Conditional likelihood is used for speed; the default `extractfn = derived` is compatible with both `CL = TRUE` and `CL = FALSE`. The 200-m buffer allows for the longest ranges ($\sigma_y = 50$ m).
 
 ```{r runEllipseSim, eval = runall}
-nrepl <- 500
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-simrandom <- vector('list')
-simrandomBVN <- vector('list')
+tr <- make.grid(6, 6, spacing = 50, detector = 'proximity')
+simrandomBVN36 <- vector('list', 4)
 for (i in 1:4) {
     sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
-    details <- list(distribution = 'binomial')
-    # uniform
-    simrandom[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
-        ncores = ncores, traps = tr, g0 = 0.2, D = 4, type = 'uniform', 
-        CL = TRUE, details = details) 
-    # bvn
-    simrandomBVN[[i]] <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, 
-        ncores = ncores, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
-        CL = TRUE, details = details) 
+    simrandomBVN36[[i]] <- runEllipseSim (nrepl = 500, sigmaX, sigmaY, buffer = 200, 
+        ncores = 20, traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', 
+        CL = TRUE, detectfn = 'HHN', details = list(distribution = 'binomial')) 
 }
-save(simrandom, file = paste0(vignettefolder, 'simrandom36.2.RData'))
-save(simrandomBVN, file = paste0(vignettefolder, 'simrandomBVN36.2.RData'))
 ```
 
 The package function `simplot` is used to summarize the results
 
+```{r load36, echo = FALSE}
+load(file = paste0(simfolder, 'simrandomBVN36.RData'))
+```
 ```{r runsumplot, fig.width = 4, fig.height = 4}
-load(file = paste0(vignettefolder, 'simrandom36.2.RData'))
-load(file = paste0(vignettefolder, 'simrandomBVN36.2.RData'))
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-output <- simplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]))
+par(xpd = FALSE, mar = c(4,4,4,4))
+simplot(list(BVN = simrandomBVN36))
 ```
 
-Fig. 2. Relative bias of density estimated by fitting circular SECR detection model to elliptical data, with 95\% confidence limit for simulated values. 'Uniform' home ranges were truncated at the 95\% activity contour of an equivalent bivariate normal, and detection probability was uniform inside the boundary. 'BVN' home ranges extended indefinitely in all directions.
+Fig. 2. Relative bias of density estimated by fitting circular SECR detection model to elliptical data, with 95\% confidence limit for simulated values. 
 
+Next print a summary of the simulation results. There is no apparent effect of range elongation itself on the bias of the estimates. 
 ```{r}
-output
+simsum(list(BVN = simrandomBVN36))
 ```
 
-There is no apparent effect of range elongation itself on the bias of the estimates. Fitting a halfnormal detection function (detectfn = 0) to data from 'hard-edged' (uniform) home ranges (detectfn = 4) appears to result in negative bias on the order of --1% to --2% (Efford 2004 noted a relative bias of --1.2%, SE 0.8% for a small sample of 100 simulations fitting a model by inverse prediction in the circular case).
+The [Appendix](#appendix) has many other examples.
 
-##Check circular using alternate method (sim.capthist)
+## Heterogeneous elliptical home ranges  {#heterogeneity}
 
-```{r checkcircular, eval = runall}
-nrepl <- 500
-tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
-simcirc <- vector('list')
-simcircBVN <- vector('list')
-    sigmaX <- 25
-    details <- list(distribution = 'binomial')
-    # uniform
-    simcirc[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 2, 
-                               traps = tr, g0 = 0.2, D = 4, type = 'uniform', CL = TRUE, 
-                               details = details) 
-    # bvn
-    simcircBVN[[1]] <- runEllipseSim (nrepl, sigmaX, sigmaY=NULL, buffer = 200, ncores = 2, 
-                               traps = tr, lambda0 = 0.4, D = 4, type = 'BVN', CL = TRUE, 
-                               details = details) 
-save(simcirc, file = 'simcirc.RData')
-save(simcircBVN, file = 'simcircBVN.RData')
-```
-```{r, results="hold"}
-load(file = paste0(vignettefolder, 'simcirc.RData'))
-load(file = paste0(vignettefolder, 'simcircBVN.RData'))
-par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
-simsum(list(Uniform = simcirc, BVN = simcircBVN))
-```
-
-##Heterogeneous elliptical home ranges  {#heterogeneity}
-
-`simpopn.bvn` usually generates a population with equal-sized home ranges. The size and elongation of each range may be varied by providing a function as the argument `s2xy`:
+`simpopn.bvn` by default generates a population with equal-sized home ranges. The size and elongation of each range may be varied by providing a function as the argument `s2xy`:
 ```{r heteroellipses, fig.width = 4, fig.height = 4}
 tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
 rs2xy <- function(N, scale = 25) {   
@@ -147,19 +112,20 @@ Heterogeneous populations may also be simulated in `runEllipseSim` by passing a 
 
 ```{r runhetero, eval = runall}
 sims <- runEllipseSim (10, sigmaX = rs2xy, buffer = 200, ncores = 2, 
-                       traps = tr, g0 = 0.2, D = 4, type = 'uniform', CL = TRUE, 
-                       SECR = TRUE) 
+                       traps = tr, g0 = 0.2, D = 4, type = 'uniform') 
 ```
 
-# Anisotropic home ranges: a partial solution
+# Anisotropic home ranges: a partial solution {#anisotropic}
 
-In principle, we can deal with elongated ranges by replacing Euclidean distances with distances in a space transformed to render home ranges circular (Murphy et al. 2016). In effect home ranges are compressed along their major axis. The transformation uses two parameters: $\psi_A$ for the shared orientation measured in radians and $\psi_R$ for the degree of compression ($\psi_R \ge 1$; $\psi_R = 1$ corresponds to no compression). Thanks to Ben Augustine for pointing out the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018)[^footnote].
+In principle, we can deal with elongated ranges by replacing Euclidean distances with distances in a space transformed to render home ranges circular (Murphy et al. 2016). The transformation compresses home ranges along their major axis. The transformation uses two parameters: $\psi_A$ for the shared orientation measured in radians and $\psi_R$ for the compression ratio ($\psi_R \ge 1$; $\psi_R = 1$ corresponds to no compression). The parameter $\psi_A$ (psiA) corresponds to the argument `theta` used by `simpopn.bvn`. Thanks to Ben Augustine for pointing out the **geoR** function `coords.aniso` that lets us do this (Ribeiro and Diggle 2018)[^footnote].
 
 [^footnote]:The package **intamap** (Pebesma et al. 2010) also offers anisotropic transformation in function `rotateAnisotropicData`.
 
-The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested in the [Appendix](#appendix) on data from a hollow square array. In this version both transformation parameters are estimated (cf Murphy et al. 2016). This is the only place in this vignette that we attempt to *fit* elongated ranges rather than circular ranges.
+The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested in the [Appendix](#appendix) on data from a hollow square array.
 
-The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. Transformation parameters are handled in the undocumented 'miscparm' feature of 'secr'. This allows supernumerary unmodelled parameters to be passed to the distance function. The parameters are included in the vector of coefficients (beta parameters) over which the likelihood is maximised. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places. The link function is 'identity' for $\psi_A$ and 'log' for $\psi_R-1$.
+## Distances in transformed space
+
+The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. In this version both transformation parameters are estimated (cf Murphy et al. 2016). Transformation parameters are handled in the undocumented 'miscparm' feature of 'secr'. This allows supernumerary unmodelled parameters to be passed to the distance function. The parameters are included in the vector of coefficients (beta parameters) over which the likelihood is maximised. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places. The link function is 'identity' for $\psi_A$ and 'log' for $\psi_R-1$.
 
 ```{r anisotropic}
 anisodistfn <- function (xy1, xy2, mask) {
@@ -175,16 +141,18 @@ anisodistfn <- function (xy1, xy2, mask) {
 }
 ```
 
+## Example
+
 Here is a simple application with oblique elliptical home ranges (`theta = pi/4`).
 
-```{r anisoexample, cache = TRUE}
+```{r anisoexample}
 tr <- make.grid(10, 10, spacing = 25, hollow = TRUE, detector = 'proximity')
 pop <- simpopn.bvn(s2xy = (25*c(0.5,2))^2, theta = pi/4, core = tr, buffer = 200, 
                    D = 4, Ndist = 'fixed')
 CH <- simcapt.bvn(tr, pop, type = 'BVN', lambda = 0.4, noccasions = 5)
 ```
 
-```{r anisoplot, warnings = FALSE}
+```{r anisoplot, warning = FALSE, message = FALSE}
 par(mfrow = c(1,1))
 plot(CH, tracks = TRUE)
 plotpopn.bvn(pop, border='grey', add = TRUE)
@@ -193,14 +161,14 @@ plot(tr, add = TRUE)
 
 First we fit a naive circular model.
 
-```{r anisofit0, cache = TRUE}
+```{r anisofit0}
 fit0 <- secr.fit(CH, buffer = 200, detectfn = 'HHN', trace = FALSE,
                 details = list(distribution = 'binomial'))
 predict(fit0)
 ```
 
 Next, the model with transformation to isotropy.
-```{r anisofit1, cache = TRUE}
+```{r anisofit1}
 details <- list(distribution = 'binomial', userdist = anisodistfn, 
                 miscparm = c(psiA = 0.5, psiR = 1.5))  # initial values
 fit1 <- secr.fit(CH, buffer = 200, detectfn = 'HHN', trace = FALSE,
@@ -211,12 +179,47 @@ coef(fit1)
 
 The estimated bearing is `r round(coef(fit1)['psiA','beta']*360/2/pi,2)` degrees. The estimated aspect ratio is `r round(1 + exp(coef(fit1)['psiR', 'beta']),2)`, (95% CI `r round(1 + exp(coef(fit1)['psiR', c('lcl','ucl')]), 2)`).
 
+## Function to fit anisotropic model
+
 The function `anisotropic.fit` streamlines model fitting and does not require `anisodistfn` to be defined externally. Use it as you would use `secr.fit`. For example,
-```{r anisofit2, cache = TRUE}
+```{r anisofit2}
 fit2 <- anisotropic.fit(CH,  buffer = 200, detectfn = 'HHN', trace = FALSE, 
                 details = list(distribution = "binomial"))
-predictAniso(fit2) # estimates of transformation parameters
+predictAniso(fit2) # estimates of transformation parameters psiA (in degrees) and psiR
 ```
+
+## Fixed orientation
+
+If the orientation is known then there are two solutions:
+
+1. Re-write anisodistfn for miscparm of length 1, with hard-coded value for psiA, or
+2. Fix the beta parameter corresponding to psiA.
+
+Here we demonstrate (2), fixing psiA at pi/4 (45 degrees). The `secr.fit` details argument fixedbeta is a vector of values, one per 'beta' parameter, using NA for each beta to be estimated. The first three beta parameters are for D, lambda0 and sigma; the next two are for psiA and psiR. If you model D, lambda0 or sigma there will be extra beta parameters, pushing psiA and psiR back.
+
+```{r demofixedbeta}
+fit3 <- anisotropic.fit(CH,  buffer = 200, detectfn = 'HHN', trace = FALSE, 
+            details = list(distribution = "binomial", fixedbeta = c(NA,NA,NA,pi/4,NA)))
+predictAniso(fit3) # estimate of psiR only
+predict(fit3)
+```
+
+## Inadequate data
+
+Detectors in a straight line provide very little information with which to estimate $\psi_A$ and $\psi_R$. Here is an example.
+
+```{r anisoexample2}
+tr <- make.grid(100, 1, spacing = 25, detector = 'proximity')
+pop <- simpopn.bvn(s2xy = (25*c(0.5,2))^2, theta = pi/4, core = tr, buffer = 200, 
+                   D = 4, Ndist = 'fixed')
+CH <- simcapt.bvn(tr, pop, type = 'BVN', lambda = 0.4, noccasions = 5)
+fit4 <- anisotropic.fit(CH,  buffer = 200, detectfn = 'HHN', trace = FALSE, 
+                details = list(distribution = "binomial"))
+predictAniso(fit4) # estimates of transformation parameters psiA (in degrees) and psiR
+predict(fit4)
+```
+
+(Perhaps the parameters are not strictly nonidentifiable).
 
 # Package limitations
 
@@ -712,6 +715,9 @@ save(simaniso4, file = paste0(simfolder, 'simaniso4.RData'))
 ```
 
 ```{r sumplotaniso, echo = TRUE, eval = TRUE, fig.width = 8, fig.height = 4}
+load(file = paste0(simfolder, 'simgridalignsq1.2.RData'))
+load(file = paste0(simfolder, 'simgridalignsq2.2.RData'))
+load(file = paste0(simfolder, 'simgridalignsq3.2.RData'))
 load(file = paste0(simfolder, 'simaniso1.RData'))
 load(file = paste0(simfolder, 'simaniso2.RData'))
 load(file = paste0(simfolder, 'simaniso3.RData'))
@@ -743,9 +749,6 @@ simsum(list(Aligned = simaniso1,
 Tabular comparison of isotropic and anisotropic models for hollow grid.
 
 ```{r compareanisotable}
-load(file = paste0(simfolder, 'simgridalignsq1.2.RData'))
-load(file = paste0(simfolder, 'simgridalignsq2.2.RData'))
-load(file = paste0(simfolder, 'simgridalignsq3.2.RData'))
 tab1 <- simsum(list(Aligned = simgridalignsq1.2[1:4], 
              Oblique = simgridalignsq2.2[1:4],
              Random = simgridalignsq3.2[1:4]))
