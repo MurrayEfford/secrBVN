@@ -13,10 +13,16 @@ anisodistfn <- function (xy1, xy2, mask) {
 predictAniso <- function (fit, angle = c("degrees", "radians")) {
     angle <- match.arg(angle)
     co <- coef(fit)
-    if (!all( c("psiA", "psiR")  %in% rownames(co)))
-        stop ("input is not anisotropic.fit")
+    # if (!all( c("psiA", "psiR")  %in% rownames(co)))
+    #    stop ("input is not anisotropic.fit")
     pred <- co[c("psiA", "psiR"), ]
+    rownames(pred) <- c("psiA", "psiR")
     colnames(pred)[1:2] <- c("estimate", "SE.estimate")
+    if (!is.null(fit$details$fixedbeta)) {
+        fb <- fit$details$fixedbeta
+        fixed <- fb[max(unlist(fit$parindx)) + 1:2]
+        pred[!is.na(fixed), 1] <- fixed[!is.na(fixed)]
+    }
     if (angle == "degrees")
         pred["psiA", ] <- pred["psiA", ] * 360 / 2 / pi
     pred["psiR", ] <- 1 + exp(pred["psiR", ])  
