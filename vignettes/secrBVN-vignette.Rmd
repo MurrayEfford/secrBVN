@@ -14,7 +14,7 @@ vignette: >
 
 \vspace{16pt}
 
-This small package evaluates SECR when home ranges are BVN or uniform (flat-topped) ellipses. Here we assume detection hazard is directly proportional to home range utilisation (activity). Code to use **secrBVN** for the simulations of Efford (in prep.) is provided in the [Appendix](#Appendix).
+The small package **secrBVN** is used to evaluate the performance of SECR estimators when home ranges are bivariate normal (BVN) or uniform (flat-topped) ellipses. We assume detection hazard is directly proportional to home range utilisation (activity). Code to use **secrBVN** for the simulations of Efford (in prep.) is provided in the [Appendix](#Appendix).
 
 The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`, `runEllipseSim`, `simsum`, `simplot` and `anisotropic.fit`.
 
@@ -52,7 +52,7 @@ Fig. 1. Elliptical home ranges with varying ratio of major to minor axes as show
 
 ## Generating detection histories
 
-Normally in **secr** we use `sim.capthist` to generate capture histories, but that is limited to circular detection functions. The function `simcapt.bvn` is a partial replacement for `sim.capthist` that models detection with a bivariate normal. Specifically, the cumulative hazard of detection is a constant times the bivariate normal probability density at the detector. The constant is $\lambda_0 2 \pi \sigma_X \sigma_Y$. The user provides a 'popn' object that includes the BVN parameter values ($\sigma_x^2, \sigma_y^2, \theta$) for each animal (row), as generated above by `simpopn.bvn`. The constant scales the BVN density so that the maximum hazard is $\lambda_0$.
+Normally in **secr** we use `sim.capthist` to generate capture histories, but that is limited to circular detection functions. The **secrBVN** function `simcapt.bvn` is a partial replacement for `sim.capthist` that models detection with a bivariate normal. Specifically, the cumulative hazard of detection is a constant times the bivariate normal probability density at the detector. The constant is $\lambda_0 2 \pi \sigma_X \sigma_Y$. The user provides a 'popn' object that includes the BVN parameter values ($\sigma_x^2, \sigma_y^2, \theta$) for each animal (row), as generated above by `simpopn.bvn`. The constant scales the BVN density so that the maximum hazard is $\lambda_0$.
 
 The preceding paragraph describes the default behaviour of `simcapt.bvn`. If `type = uniform` is selected then a uniform (flat-topped) elliptical home range is simulated. The uniform probability of detection within the ellipse is controlled by `g0`, not `lambda0`.
 
@@ -60,7 +60,7 @@ The preceding paragraph describes the default behaviour of `simcapt.bvn`. If `ty
 
 The function `runEllipseSim` is a wrapper for the preceding steps (`simpopn.bvn`, `simcapt.bvn`) that also fits a standard (circular) SECR model with `secr.fit`[^footnote1]. The default population has a fixed number of individuals within the rectangular buffered area around the detectors (`Ndist = 'fixed'`).
 
-[^footnote1]: An elliptical SECR model may also be fitted - see [Anisotropic home ranges](#anisotropic).
+[^footnote1]: An elliptical SECR model also may be fitted - see [Anisotropic home ranges](#anisotropic).
 
 For this example we use a $6 \times 6$ grid of binary proximity detectors with 50 metre spacing. The code in **secrBVN** does not allow for competition among detectors (secr detector type 'multi') or other other secr detector types. A density of 4/ha gives exactly 169 animals in the buffered area.  Conditional likelihood is used for speed; the default `extractfn = derived` is compatible with both `CL = TRUE` and `CL = FALSE`. The 200-m buffer allows for the longest ranges ($\sigma_y = 50$ m).
 
@@ -75,7 +75,7 @@ for (i in 1:4) {
 }
 ```
 
-The package function `simplot` is used to summarize the results
+The **secrBVN** function `simplot` is used to summarize the results
 
 ```{r load36, echo = FALSE}
 load(file = paste0(simfolder, 'simrandomBVN36.RData'))
@@ -96,7 +96,7 @@ The [Appendix](#appendix) has many other examples.
 
 ## Heterogeneous elliptical home ranges  {#heterogeneity}
 
-`simpopn.bvn` by default generates a population with equal-sized home ranges. The size and elongation of each range may be varied by providing a function as the argument `s2xy`:
+`simpopn.bvn` by default generates a population with equal-sized home ranges. The size and elongation of each range may be varied by providing a user-defined function as the argument `s2xy`:
 ```{r heteroellipses, fig.width = 4, fig.height = 4}
 tr <- make.grid(6,6, spacing = 50, detector = 'proximity')
 rs2xy <- function(N, scale = 25) {   
@@ -121,11 +121,11 @@ In principle, we can deal with elongated ranges by replacing Euclidean distances
 
 [^footnote]:The package **intamap** (Pebesma et al. 2010) also offers anisotropic transformation in function `rotateAnisotropicData`.
 
-The method does not work if the detector array is strictly linear (2-D data are required to estimate elongation). It is tested in the [Appendix](#appendix) on data from a hollow square array.
+The method does not work if the detector array is strictly linear (2-D data are required to estimate the orientation and compression parameters). It is tested in the [Appendix](#appendix) on simulated data from a hollow square array.
 
 ## Distances in transformed space
 
-The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. In this version both transformation parameters are estimated (cf Murphy et al. 2016). Transformation parameters are handled in the undocumented 'miscparm' feature of 'secr'. This allows supernumerary unmodelled parameters to be passed to the distance function. The parameters are included in the vector of coefficients (beta parameters) over which the likelihood is maximised. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places. The link function is 'identity' for $\psi_A$ and 'log' for $\psi_R-1$.
+The code uses a user-defined distance function that computes a Euclidean distance in the transformed space. In this version both transformation parameters are estimated (cf Murphy et al. 2016). Transformation parameters are handled in the undocumented 'miscparm' feature of `secr.fit`. This allows supernumerary unmodelled parameters to be passed to the distance function. The parameters are included in the vector of coefficients (beta parameters) over which the likelihood is maximised. 'Unmodelled' here means that the parameter takes a single value for all animals, times and places. The link function is 'identity' for $\psi_A$ and 'log' for $\psi_R-1$.
 
 ```{r anisotropic}
 anisodistfn <- function (xy1, xy2, mask) {
@@ -181,7 +181,7 @@ The estimated bearing is `r round(coef(fit1)['psiA','beta']*360/2/pi,2)` degrees
 
 ## Function to fit anisotropic model
 
-The function `anisotropic.fit` streamlines model fitting and does not require `anisodistfn` to be defined externally. Use it as you would use `secr.fit`. For example,
+The **secrBVN** function `anisotropic.fit` streamlines model fitting and does not require `anisodistfn` to be defined externally. Use it as you would use `secr.fit`. For example,
 ```{r anisofit2}
 fit2 <- anisotropic.fit(CH,  buffer = 200, detectfn = 'HHN', trace = FALSE, 
                 details = list(distribution = "binomial"))
@@ -247,9 +247,11 @@ Murphy, S. M., Cox, J. J., Augustine, B. C., Hast, J. T., Guthrie, J. M., Wright
 Pebesma, E., Cornford, D., Dubois, G., Heuvelink, G.B.M., Hristopoulos, D., Pilz, J., Stoehlker, U., Morin, G. and Skoien, J.O. (2010) INTAMAP: the design and implementation of an interoperable automated interpolation web service. 
 *Computers & Geosciences* **37**, 343--352.
 
-Ribeiro, P. J. Jr and Diggle, P. J. (2018). geoR: Analysis of
+Ribeiro, P. J. Jr and Diggle, P. J. (2018) geoR: Analysis of
   Geostatistical Data. R package version 1.7-5.2.1.
   https://CRAN.R-project.org/package=geoR.
+
+\pagebreak
 
 # Appendix. Code for simulations of Efford (in prep)  {#Appendix}
 
@@ -751,11 +753,11 @@ Tabular comparison of isotropic and anisotropic models for hollow grid.
 ```{r compareanisotable}
 tab1 <- simsum(list(Aligned = simgridalignsq1.2[1:4], 
              Oblique = simgridalignsq2.2[1:4],
-             Random = simgridalignsq3.2[1:4]))
+             Random = simgridalignsq3.2[1:4]))  # find D-hat in the 'fit' component of the output
 tab2 <- simsum(list(Aligned = simaniso1, 
              Oblique = simaniso2,
              Random = simaniso3),
-        component = "pred")
+        component = "pred")                     # find D-hat in the 'pred' component of the output
 fn <- function(t1,t2) cbind(t1[,-1],t2[,-1])
 mapply(fn, tab1, tab2, SIMPLIFY = FALSE)
 ```
