@@ -1,10 +1,13 @@
 simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4, 
                     compact = c('av.nCH', 'RB', 'RSE', 'rRMSE', 'COV'), dec = 3) {
     sumD <- function(x) {
-        Dval <- sapply(lapply(x, '[[', component), '[[', parm, 'estimate')
-        DSE  <- sapply(lapply(x, '[[', component), '[[', parm, 'SE.estimate')
-        Dlcl <- sapply(lapply(x, '[[', component), '[[', parm, 'lcl')
-        Ducl <- sapply(lapply(x, '[[', component), '[[', parm, 'ucl')
+        getfield <- function (y, field = 'estimate') {
+            y[parm, field]
+        }
+        Dval <- sapply(lapply(x, '[[', component), getfield, 'estimate')
+        DSE  <- sapply(lapply(x, '[[', component), getfield, 'SE.estimate')
+        Dlcl <- sapply(lapply(x, '[[', component), getfield, 'lcl')
+        Ducl <- sapply(lapply(x, '[[', component), getfield, 'ucl')
         n <- sum(!is.na(Dval))
         RB <- (Dval-trueval)/trueval
         RSE <- DSE/Dval
@@ -14,15 +17,15 @@ simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval =
         c(av.npop = mean(npop), 
           av.nCH = mean(nCH), 
           nvalid = n,
-          av.parmhat = mean(Dval, na.rm = T),
-          md.parmhat = median(Dval, na.rm = T), 
-          sd.parmhat = sd(Dval, na.rm = T),
-          RB = mean(RB, na.rm = T), 
-          seRB = sd(Dval, na.rm = T)/trueval/n^0.5,
-          RSE = mean(RSE, na.rm = T), 
-          seRSE = sd(RSE, na.rm = T)/n^0.5,
-          rRMSE = sqrt(mean((Dval-trueval)^2)) / trueval,
-          COV = mean(COV, na.rm = T))
+          av.parmhat = mean(Dval, na.rm = TRUE),
+          md.parmhat = median(Dval, na.rm = TRUE), 
+          sd.parmhat = sd(Dval, na.rm = TRUE),
+          RB = mean(RB, na.rm = TRUE), 
+          seRB = sd(Dval, na.rm = TRUE)/trueval/n^0.5,
+          RSE = mean(RSE, na.rm = TRUE), 
+          seRSE = sd(RSE, na.rm = TRUE)/n^0.5,
+          rRMSE = sqrt(mean((Dval-trueval)^2, na.rm = TRUE)) / trueval,
+          COV = mean(COV, na.rm = TRUE))
     }
     tidy <- function (x) {
         tmp <- sapply(x, sumD)
