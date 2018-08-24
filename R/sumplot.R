@@ -1,8 +1,11 @@
 simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4, 
-                    compact = c('av.nCH', 'RB', 'RSE', 'rRMSE', 'COV'), dec = 3) {
+                    compact = c('av.nCH', 'nvalid', 'RB', 'RSE', 'rRMSE', 'COV'), 
+                    dec = 3, maxfactor = 10) {
     sumD <- function(x) {
         getfield <- function (y, field = 'estimate') {
-            y[parm, field]
+            out <- y[parm, field]
+            out[abs(out) > (maxfactor * trueval)] <- NA
+            out
         }
         Dval <- sapply(lapply(x, '[[', component), getfield, 'estimate')
         DSE  <- sapply(lapply(x, '[[', component), getfield, 'SE.estimate')
