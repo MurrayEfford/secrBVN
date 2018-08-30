@@ -13,7 +13,7 @@ A list of outputs from \code{\link{runEllipseSim}} is summarised and optionally 
 \usage{
 
 simsum(simlist, component = c("fit","pred"), parm = "D", trueval = 4, 
-    compact = c("av.nCH", "nvalid", RB", "RSE", "rRMSE", "COV"), dec = 3,
+    compact = c("av.nCH", "nvalid", "RB", "RSE", "rRMSE", "COV"), dec = 3,
     maxfactor = 10)
     
 simplot(simlist, component = c("fit","pred"), parm = "D", trueval = 4, 
@@ -31,7 +31,7 @@ simplot(simlist, component = c("fit","pred"), parm = "D", trueval = 4,
   \item{compact}{character vector for summary statistics to include in output 
         (NULL for all)}
   \item{dec}{integer number of decimal places in output}
-  \item{maxfactor}{numeric}
+  \item{maxfactor}{numeric; extreme estimate filter (see Details)}
   \item{xval}{numeric vector of values}
   \item{xlim}{numeric limits of x-axis}
   \item{ylim}{numeric limits of y-axis}
@@ -49,7 +49,7 @@ These functions meet the needs of Efford in prep. as shown in the package vignet
 
 Each component of \code{simlist} should have the same number of components (ellipse scenarios).
 
-Estimates with absolute value greater than maxfactor * trueval are set to NA.
+Estimates with absolute value greater than maxfactor * trueval are set to NA (maxfactor is ignored if NULL).
 
 }
 
