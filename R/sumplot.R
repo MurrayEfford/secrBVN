@@ -4,7 +4,8 @@ simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval =
     sumD <- function(x) {
         getfield <- function (y, field = 'estimate') {
             out <- y[parm, field]
-            out[abs(out) > (maxfactor * trueval)] <- NA
+            if (!is.null(maxfactor))
+                out[abs(out) > (maxfactor * trueval)] <- NA
             out
         }
         Dval <- sapply(lapply(x, '[[', component), getfield, 'estimate')
