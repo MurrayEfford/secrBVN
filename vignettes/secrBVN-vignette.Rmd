@@ -328,6 +328,7 @@ par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
 simplot(list(Uniform = simrandom100.3[1:4], BVN = simrandomBVN100.3[1:4]), legend = TRUE)
 # tabulate all
 simsum(list(Uniform = simrandom100.3, BVN = simrandomBVN100.3), compact = NULL, dec = 4)
+simsum(list(Uniform = simrandom100.3, BVN = simrandomBVN100.3), dec = 4)
 ```
 
 
@@ -656,7 +657,7 @@ load(file = paste0(simfolder, 'simrandom36.2.RData'))
 load(file = paste0(simfolder, 'simrandomBVN36.2.RData'))
 par(mfrow = c(1,1), mar = c(4,4,4,4), xpd = FALSE)
 simplot(list(Uniform = simrandom36.2[1:4], BVN = simrandomBVN36.2[1:4]), legend = TRUE)
-simsum(list(Uniform = simrandom36.2, BVN = simrandomBVN36.2), compact = NULL)
+simsum(list(Uniform = simrandom36.2, BVN = simrandomBVN36.2))
 ```
 
 ### Common random orientation
@@ -921,6 +922,10 @@ save(simanisogridw2, file = paste0(simfolder, 'simanisogridw2.RData'))
 save(simanisogridw3, file = paste0(simfolder, 'simanisogridw3.RData'))
 
 tr <- make.grid(36, 1, spacing = 50, detector = 'proximity')
+baseargs <- list(nrepl = nrepl, buffer = 200, ncores = ncores, traps = tr, 
+                 lambda0 = 0.4, D = 4, type = 'BVN', CL = FALSE, detectfn = 'HHN', 
+                 details = list(distribution = 'binomial'), extractfn = coef,
+                 secrfn = 'anisotropic.fit', sigmaX = sigmaX, sigmaY = sigmaY)
 simanisolinw1 <- vector('list', 4); names(simanisolinw1) <- 1:4
 simanisolinw4 <- simanisolinw3 <- simanisolinw2 <- simanisolinw1
 args <- c(baseargs, list(theta = 0)) # perpendicular to detectors
@@ -939,8 +944,6 @@ save(simanisolinw4, file = paste0(simfolder, 'simanisolinw4.RData'))
 tr <- make.grid(10, 10, spacing = 50, detector = 'proximity', hollow = TRUE)
 simanisow1 <- vector('list', 4); names(simanisow1) <- 1:4
 simanisow3 <- simanisow2 <- simanisow1
-i <- 4
-sigmaX <- 25/i^0.5; sigmaY <- 25*i^0.5
 baseargs <- list(nrepl = nrepl, buffer = 200, ncores = ncores, traps = tr, 
                  lambda0 = 0.4, D = 4, type = 'BVN', CL = FALSE, detectfn = 'HHN', 
                  details = list(distribution = 'binomial'), extractfn = coef,
