@@ -78,7 +78,7 @@ tr <- make.grid(6,6, spacing = 50, detector = "proximity")
 sigmaX <- 25/2; sigmaY <- 25*2
 details <- list(distribution = "binomial")
 sims <- runEllipseSim (nrepl, sigmaX, sigmaY, buffer = 200, ncores = 2, 
-                       traps = tr, g0 = 0.2, D = 4, detectfngen = 4, CL = TRUE, 
+                       traps = tr, g0 = 0.2, D = 4, CL = TRUE, 
                        details = details) 
 }
 }
