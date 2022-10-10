@@ -1,7 +1,7 @@
 ## modified 2018-07-26 to also report predicted values 
 runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, type = c('uniform', 'BVN'), 
                           g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, noccasions = 5, buffer = 100, 
-                          D = 10, extractfn = derived, seed = NULL, ncores = 1, outfile = "cluster.log", 
+                          D = 10, extractfn = derived, seed = NULL, ncores = NULL, 
                           Ndist = 'fixed', secrfn = c('secr.fit', 'anisotropic.fit'), ...) {
     onereplicate <- function (r) {
 
@@ -63,18 +63,10 @@ runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, t
             detectpar <- list(lambda0 = lambda0, sigma = sigmaX)
     }
     
-    if (ncores == 1) {
-        set.seed(seed)        
-        output <- lapply(1:nrepl, onereplicate)
+    if (!is.null(ncores)) {
+        setNumThreads(ncores)
     }
-    else {
-        ## use 'parallel'
-        list(...)    ## ensures promises evaluated see parallel vignette 2015-02-02  
-        unlink(outfile)  ## delete any existing log file
-        clust <- makeCluster(ncores, outfile = outfile)
-        clusterSetRNGStream(clust, seed)  
-        output <- parLapply (clust, 1:nrepl, onereplicate)
-        stopCluster(clust)        
-    }
-    output
+    
+    set.seed(seed)        
+    lapply(1:nrepl, onereplicate)
 }

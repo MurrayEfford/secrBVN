@@ -4,8 +4,6 @@ importFrom ("stats", "runif", "predict", "median", "sd", "coef")
 
 importFrom ("utils", "flush.console")
 importFrom ("mvtnorm", "dmvnorm")
-importFrom ("parallel", "parLapply", "makeCluster", "clusterSetRNGStream", 
-            "stopCluster", "clusterExport")
 importFrom ("utils", "packageDescription")
 importFrom ("utils", "packageVersion")
 importFrom ("sp", "Polygon", "Polygons", "SpatialPolygons")

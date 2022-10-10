@@ -27,7 +27,7 @@ The key user-visible functions are `simpopn.bvn`, `plotpopn.bvn`, `simcapt.bvn`,
 First, load the package.
 ```{r startup, message = FALSE}
 library(secrBVN)
-simfolder <- "c:/density communication/noncircularity/paper/simulations/"
+simfolder <- "d:/density communication/noncircularity/paper/simulations/"
 runall <- FALSE  # skip lengthy simulations
 ```
 
@@ -257,7 +257,7 @@ Ribeiro, P. J. Jr and Diggle, P. J. (2018) geoR: Analysis of
 
 ```{r simfolder}
 library(secrBVN)
-simfolder <- "c:/density communication/noncircularity/paper/simulations/"
+simfolder <- "d:/density communication/noncircularity/paper/simulations/"
 nrepl <- 500
 ncores <- 20                               # for machine with at least 20 cores
 runsim <- FALSE                            # change to TRUE to execute simulations

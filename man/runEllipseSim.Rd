@@ -13,7 +13,7 @@ A wrapper for other bvn functions.
 runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
     type = c("uniform","BVN"), g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL,
     noccasions = 5, buffer = 100, D = 10, extractfn = derived, seed = NULL, 
-    ncores = 1, outfile = "cluster.log",  Ndist = "fixed",
+    ncores = NULL, Ndist = "fixed",
     secrfn = c("secr.fit", "anisotropic.fit"), ...) 
 
 }
@@ -33,8 +33,7 @@ runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
   \item{D}{real population density animals/ha}
   \item{extractfn}{ function used to summarise each simulated model fit}
   \item{seed}{integer random number seed}
-  \item{ncores}{integer number of cores to use (ncores > 1 for parallel processing)}
-  \item{outfile}{name of log file used if ncores > 1}
+  \item{ncores}{integer number of cores to use (used in 1.3.0 to setNumThreads)}
   \item{secrfn}{character; name of function to call or NULL}
   \item{Ndist}{character string for distribution of number of individuals (see \code{\link{sim.popn}})}
   \item{...}{other arguments passed to secrfn}
