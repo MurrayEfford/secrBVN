@@ -14,13 +14,15 @@ plotpopn.bvn <- function (popn, radius = 2.45, add = FALSE, region = NULL,  ...)
         ellipsi <- rotate (ellipsi, theta[i]*360/2/pi, centrexy = popn[i,])
         ellipsesp <- SpatialPolygons(list(Polygons(list(Polygon(as.matrix(ellipsi))), ID=1)))
         if (!is.null(region)) {
+            if (!requireNamespace("rgeos")) stop ("gIntersection uses rgeos that is unavailable")
             ellipsi2 <- gIntersection(ellipsesp, region)
             if (!is.null(ellipsi2))
                 plot(ellipsi2, add = TRUE, ...)
             polygon(ellipsi)
         }
-        else
-        polygon (ellipsi, ...)
+        else {
+            polygon (ellipsi, ...)
+        }
     }
 }
 

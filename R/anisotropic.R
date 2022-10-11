@@ -1,5 +1,6 @@
 anisodistfn <- function (xy1, xy2, mask) {
     if (missing(xy1)) return(character(0))
+    if (!requireNamespace("geoR")) stop ("aniso requires geoR that is unavailable")
     xy1 <- as.matrix(xy1)
     xy2 <- as.matrix(xy2)
     miscparm <- attr(mask, 'miscparm')
