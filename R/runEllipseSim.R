@@ -1,10 +1,19 @@
 ## modified 2018-07-26 to also report predicted values 
-runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, type = c('uniform', 'BVN'), 
-                          g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL, noccasions = 5, buffer = 100, 
-                          D = 10, extractfn = derived, seed = NULL, ncores = NULL, 
-                          Ndist = 'fixed', secrfn = c('secr.fit', 'anisotropic.fit'), ...) {
+## modified 2022-10-11 for random traps
+runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, 
+    type = c('uniform', 'BVN'), g0 = 0.2, lambda0 = 0.4, p = 0.95, 
+    traps = NULL, trapargs = NULL, noccasions = 5, buffer = 100, 
+    D = 10, extractfn = derived, seed = NULL, ncores = NULL, 
+    Ndist = 'fixed', secrfn = c('secr.fit', 'anisotropic.fit'),...) {
     onereplicate <- function (r) {
 
+        if (is.function(traps)) {
+            # function to deliver random trap locations
+            # local 'traps' does not alter that argument of outer fn
+            traps <- do.call(traps, trapargs)
+            mask <- make.mask(traps, buffer = buffer, type = 'trapbuffer')
+        }
+    
         if (is.null(sigmaY) & !is.function(sigmaX)) {
             ## simple and direct circular using conventional secr::sim.capthist
             pop <- sim.popn(core = traps, buffer = buffer, D = D, Ndist = Ndist)
@@ -37,9 +46,12 @@ runEllipseSim <- function(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL, t
         out
     }
     secrfn <- match.arg(secrfn)
-    if (is.null(traps))
+    if (is.null(traps)) {
         traps <- make.grid(detector = 'proximity')
-    mask <- make.mask(traps, buffer = buffer, type = 'trapbuffer')
+    }
+    else if (!is.function(traps)) {
+        mask <- make.mask(traps, buffer = buffer, type = 'trapbuffer')
+    }
     columns <- c('estimate','SE.estimate','lcl','ucl')
     
     type <- match.arg(type)

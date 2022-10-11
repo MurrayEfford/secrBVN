@@ -5,14 +5,17 @@
 \title{Run SECR simulations with Elliptical or Circular Home Ranges}
 
 \description{
+
 A wrapper for other bvn functions.
+
 }
 
 \usage{
 
 runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
-    type = c("uniform","BVN"), g0 = 0.2, lambda0 = 0.4, p = 0.95, traps = NULL,
-    noccasions = 5, buffer = 100, D = 10, extractfn = derived, seed = NULL, 
+    type = c("uniform","BVN"), g0 = 0.2, lambda0 = 0.4, p = 0.95, 
+    traps = NULL, trapargs = NULL, noccasions = 5, buffer = 100, 
+    D = 10, extractfn = derived, seed = NULL, 
     ncores = NULL, Ndist = "fixed",
     secrfn = c("secr.fit", "anisotropic.fit"), ...) 
 
@@ -27,7 +30,8 @@ runEllipseSim(nrepl = 100, sigmaX = 25, sigmaY = 25, theta = NULL,
   \item{g0}{numeric intercept of detection function (type = "uniform")}
   \item{lambda0}{numeric intercept of hazard function (type = "BVN")}
   \item{p}{numeric truncation probability for uniform elliptical home ranges}
-  \item{traps}{secr traps object}
+  \item{traps}{secr traps object, or function to generate one}
+  \item{trapargs}{list of arguments for trap building function, if is.function(traps)}
   \item{noccasions}{integer number of sampling occasions}
   \item{buffer}{real width of simulation and estimation buffer metres}
   \item{D}{real population density animals/ha}
