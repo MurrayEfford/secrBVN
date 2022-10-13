@@ -1,7 +1,8 @@
-Changes in version 1.3.0 (2022-10-11)
+Changes in version 1.3.0 (2022-10-14)
 
 New features or changed behaviour of old functions
     o   runEllipsesim() may generate new random traps at each replicate
+    o   simplot() passes dots arguments to points()
     
 Other    
     o   removed cluster code (multithreading in secr.fit)    

@@ -52,11 +52,11 @@ simsum <- function (simlist, component = c("fit", "pred"), parm = "D", trueval =
 
 simplot <- function (simlist, component = c("fit", "pred"), parm = "D", trueval = 4, 
                      xval = 1:4, xlim = c(0.7,4.3), ylim = c(-0.2,0.2),
-                     legend = TRUE, pchi = c(21, 16, 22, 24), cexi = rep(1.2,4)) {
+                     legend = TRUE, pchi = c(21, 16, 22, 24), cexi = rep(1.2,4), ...) {
     plotone <- function (out, i) {
         segments(xval+offset[i], out['RB',]-2*out['seRB',],
                  xval+offset[i], out['RB',]+2*out['seRB',])
-        points(xval+offset[i], out['RB',], pch = pchi[i], bg = 'white', cex = cexi[i])
+        points(xval+offset[i], out['RB',], pch = pchi[i], bg = 'white', cex = cexi[i], ...)
     }
     component <- match.arg(component)
     outlist <- simsum(simlist, component = component, parm = parm, 

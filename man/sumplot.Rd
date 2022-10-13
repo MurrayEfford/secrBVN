@@ -18,7 +18,7 @@ simsum(simlist, component = c("fit","pred"), parm = "D", trueval = 4,
     
 simplot(simlist, component = c("fit","pred"), parm = "D", trueval = 4, 
     xval = 1:4, xlim = c(0.7, 4.3), ylim = c(-0.2, 0.2),
-    legend = TRUE, pchi = c(21, 16, 22, 24), cexi = rep(1.2,4)) 
+    legend = TRUE, pchi = c(21, 16, 22, 24), cexi = rep(1.2,4), ...) 
 
 }
 
@@ -38,6 +38,7 @@ simplot(simlist, component = c("fit","pred"), parm = "D", trueval = 4,
   \item{legend}{logical; if TRUE a legend is displayed}
   \item{pchi}{numeric vector for symbol to use for each component of \code{simlist}}
   \item{cexi}{numeric vector for symbol size to use for each component of \code{simlist}}
+  \item{...}{other arguments passed to \code{points}}
 
 }
 
@@ -50,6 +51,8 @@ These functions meet the needs of Efford in prep. as shown in the package vignet
 Each component of \code{simlist} should have the same number of components (ellipse scenarios).
 
 Estimates with absolute value greater than maxfactor * trueval are set to NA (maxfactor is ignored if NULL).
+
+The \dots argument allows a few options such as "type = 'o'", but colour (bg) is set internally to white.
 
 }
 
